@@ -1,7 +1,7 @@
 
 #This keeps all of the tags
 
-
+WINPOINTS = 10
 
 CTOKEN = "Commerce"
 KTOKEN = "Knight"
@@ -24,6 +24,7 @@ SETTLEMENTSLOT = "TownSlot"
 CITYSLOT = "CitySlot"
 UNBUILDABLE = "Unbuildable"
 
+NUMRESOURCES = 6
 RESOURCE = "Resource"
 GOLD = "Gold"
 ORE = "Ore"
@@ -55,7 +56,11 @@ TURNCONTINUE = "TurnContinue"
 TURNEND = "TurnEnd"
 GAMEEND = "GameEnd"
 
+SIMPLEACTIONS = [[BUILDROAD, [0,0,2,1,0,0], True], [BUILDSETTLEMENT, [0,0,1,1,1,1], True],\
+     [BUILDCITY, [0,3,0,0,2,0], True]]
+
 ACTIONS = set([DRAWFROMDECK, BUILDROAD, BUILDSETTLEMENT, BUILDCITY])
+
 
 SCOUT = "Scout"
 

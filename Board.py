@@ -2,10 +2,14 @@ import unittest
 
 import Tags
 
+from collections import deque
+
+import random
+
 #This is a board for python. 
 
 ###################################################################################
-################################### Game Pieces ###################################
+################################### Game Parts ###################################
 ###################################################################################
 
 class Player:
@@ -14,18 +18,32 @@ class Player:
 
     self.princ = princ
 
-  #Takes in a string of the action to be taken, along with the possible actions
+  #Takes in a string of the conditions just taken, along with the possible actions
+  #ValidActions is a dictionary, with slots, then combinations
+  #Returns list of name, slot, resources
   def getAction(self, actString, validActions):
     #returns the actionpair, along with an object of additional information. 
     pass
 
+class RandomPlayer(Player):
+  def __init__(self, board, princ):
+    super().__init__(board, princ)
+
+  def getAction(self, actString, validActions):
+    actionToTake = random.choice(validActions.keys())
+
+    slot = random.choice(validActions[actionToTake][0])
+    resources = random.choice(validActions[actionToTake][1])
+
+    return [actionToTake, slot, resources]
+
 class Board:
-  def __init__(self, decks, resourceCards, numberofPiles, princ1, princ2, firstTurn, actions):
+  def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions):
     self.decks = decks
     self.resourceCards = resourceCards
     self.numberofPiles = numberofPiles
-    self.princ1 = princ1
-    self.princ2 = princ2
+
+    self.principalities = principalities
 
     self.actions = actions
 
@@ -34,64 +52,197 @@ class Board:
     
     self.currentTurn = firstTurn
 
+    self.nextProductionRoll = None
+    self.nextActionRoll = None
+
     self.winner = None
+    
 
+  #Checks if a road can be built
+  def canBuildRoad(self, princ):
+    return len(princ.getPhantomRoadSlots()) != 0
+
+  #Checks if a settlement can be built
+  def canBuildSettlement(self, princ):
+    return len(princ.getPhantomTownSlots()) != 0
+
+  #Checks if a settlement can be built
+  def canBuildCity(self, princ):
+    return len(princ.getSettlementSlots()) != 0
+    
+  #Builds a road at the desired location
+  def buildRoad(self, princ, roadSlot):
+    road = Road(princ)
+    roadSlot.setItem(road)
+
+  #Builds a settlement at the desired location
+  def buildSettlement(self, princ, townSlot):
+    #pop the two resources
+    top = self.resourceCards.pop()
+    bottom = self.resourceCards.pop()
+
+    town = Town(princ, Tags.SETTLEMENT)
+    townSlot.expand(princ, top, bottom)
+
+    townSlot.setItem(town)
+
+  #Builds a city at the desired location
+  def buildCity(self, princ, townSlot):
+    townSlot.upgradeSettlement()
+
+  #Builds an expantion at the desired location
+  def buildExpansion(self, princ, expansion, expansionSlot):
+    expansionSlot.setItem(expansion)
+
+  #Returns a list of valid actions, and a list of costs and or targets
   def getValidActions(self, princ):
-    return None
+    validActions = dict()
+    for action in self.actions:
+      actionName = action[0]
+      cost = action[1] 
+      turnRestriction = action[2]
 
-class Town:
-    def __init__(self, princ, townType, slot=None):
-      self.princ = princ
+      #Check to see if the player is able to play any actions
+      if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
 
-      self.townType = townType
+        combos = princ.getResourceCombos(cost)
+        #If we can pay for the action
+        if len(combos) != 0:
+          #Now we go through the possible actions
+          locations = []
+          if actionName == Tags.BUILDROAD:
+            locations = princ.getPhantomRoadSlots()
+          if actionName == Tags.BUILDSETTLEMENT:
+            locations = princ.getPhantomTownSlots()
+          if actionName == Tags.BUILDCITY:
+            locations = princ.getSettlementSlots()
 
-      self.slot = slot
+          #Check if there were any available slots
+          if len(locations) != 0:
+            validActions[actionName] = [locations, combos]
 
-    def upgradeSettlement(self):
-      self.townType = Tags.CITY
+    #Now append our turnend action
+    if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
+      validActions[Tags.TURNEND] = []
+    return validActions
 
+  def playGame(self):
+    #First we would want our players to search through the decks, skip for now
+    
+    #Now we start our mainphase loop
+    while True:
+      self.mainPhase()
 
-class Resource:
-  def __init__(self, princ, number, amount, resc, slot=None):
-    self.princ = princ
+      #We check if there is a winner
+      if self.checkWin() == True:
+        return self.winner
 
-    self.number = number
-    self.amount = amount
-    self.resource = resc
+  def mainPhase(self):
+    self.rollProductionDice()
 
-    self.slot = slot
+    #Now we give each player a chance to take their turn.
+    end = False
+    while end != True:
+      end = self.turnPhase()
+    #Now we are done, we give the turn to the next player
+    self.getNextPlayer()
+
+  def turnPhase(self):
+    for player in self.getPriorityOrder():
+      playerAction = player.getActions(Tags.MAINPHASE, self.getValidActions(player.princ))
+
+      #Action is name, then slot, then resources
+      actionName = playerAction[0]
+      if actionName == Tags.BUILDROAD:
+        for slot in playerAction[2]:
+          slot.item.spendResc()
+        self.buildRoad(player.princ, playerAction[1])    
+      elif actionName == Tags.BUILDSETTLEMENT:
+        for slot in playerAction[2]:
+          slot.item.spendResc()   
+        self.buildSettlement(player.princ, playerAction[1])
+      elif actionName == Tags.BUILDCITY:
+        for slot in playerAction[2]:
+          slot.item.spendResc()
+        self.buildCity(player.princ, playerAction[1])
+      elif actionName == Tags.TURNEND:
+        self.setWin()
+        return True
+
+    self.setWin()
+    return False
+
+  def rollProductionDice(self):
+    roll = None
+    if self.nextProductionRoll == None:
+      roll = random.randint(1, 6)
+    else:
+      roll = self.nextProductionRoll
+      self.nextProductionRoll = None
+
+    #Now we go through each player and tag their principalities
+    for princ in self.principalities:
+      for resourceSlot in princ.getResourceSlots():
+        resourceSlot.item.rollResc(roll)
+
+  #Only either a year of plenty or "Null", impliment this later
+  # def rollActionDice(self):
+  #   roll = None
+  #   if self.nextActionRoll == None:
+  #     roll = random.randint(1,6)
+  #   else:
+  #     roll = self.nextActionRoll
+  #     self.nextActionRoll = None
+
+  #   if roll == 1:
+  #     pass
+  #   else:
+  #     pass
+
+  #Incriments who's turn it is. 
+  def getNextPlayer(self):
+    self.currentTurn += 1
+    if len(self.principalities) == self.currentTurn:
+      self.currentTurn = 0
   
-  def rollResc(self, rolledNumber):
-    if rolledNumber == self.number and self.amount < 3:
-      self.amount += 1
+  def getCurrentPlayer(self):
+    return self.principalities[self.currentTurn]
 
-  def giveResc(self):
-    if self.amount < 3:
-      self.amount += 1
+  #get the order in which the players act, based upon the current turn
+  def getPriorityOrder(self):
+    order = [i.player for i in self.principalities[self.currentTurn:]]
 
-class Expansion:
-  def __init__(self, princ, name, tags, slot=None):
-    self.princ = princ
+    for princ in self.principalities[:self.currentTurn]:
+      order.append(princ.player)
 
-    self.name = name
-    self.tags = tags
+    return order
 
-    self.slot = slot
+  #Checks if a player is designated as the winner
+  #Returns true if a player has one and sets the winner
+  def checkWin(self):
+    if self.winner != None:
+      return True
 
-class Road:
-  def __init__(self, princ, slot=None):
-    self.princ = princ
+    return False
 
-    self.slot = slot
+  #Determines if a player should have won
+  def setWin(self):
+    for player in self.getPriorityOrder():
+      if player.princ.getPoints() == Tags.WINPOINTS:
+        self.winner = player
+        break
 
 class Principality:
   def __init__(self, board, player, resourceList):
 
     self.board = board
-    self.townSlots = set() 
-    self.tokens = set()
+    self.townSlots = deque()
+    self.tokens = []
     self.handCards = []
     self.player = player
+
+    player.princ = self
+    player.board = board
 
     initialRoad = Road(self)
     initialRoadSlot = RoadSlot(self, None, None)
@@ -105,63 +256,242 @@ class Principality:
       rescSlots.append(ResourceSlot(self, None, None))
 
       rescSlots[i].setItem(rescs[i])
-    
-      #Create the left settlement
-      leftTown = Town(self, Tags.SETTLEMENT),
-      leftTownSlot = TownSlot(self, rescSlots[0], rescSlots[1], rescSlots[4],\
-        rescSlots[5], None, initialRoadSlot, [], [])
+  
+    #Create the left settlement
+    leftTown = Town(self, Tags.SETTLEMENT)
+    leftTownSlot = initialRoadSlot.leftTownSlot
+    leftTownSlot.initiate(self, rescSlots[0], rescSlots[1], rescSlots[4],\
+      rescSlots[5])
 
-      leftTownSlot.setItem(leftTown)
+    leftTownSlot.setItem(leftTown)
 
-      #Create the right settlement
-      rightTown = Town(self, Tags.SETTLEMENT)
-      rightTownSlot = TownSlot(self, rescSlots[1], rescSlots[2], rescSlots[3],\
-      rescSlots[4], initialRoadSlot, None, [], []) 
+    #Create the right settlement
+    rightTown = Town(self, Tags.SETTLEMENT)
+    rightTownSlot = initialRoadSlot.rightTownSlot
+    rightTownSlot.initiate(self, rescSlots[1], rescSlots[2], rescSlots[3],\
+    rescSlots[4]) 
 
     rightTownSlot.setItem(rightTown)
 
   def getRoadSlots(self):
-    roadSlots = set()
+    roadSlots = []
     for town in self.getTownSlots():
       for road in town.getTownRoadSlots():
-        roadSlots.add(road)
+        if road != None:
+          roadSlots.append(road)
     return roadSlots
 
+
+  #Returns the phantom road slot on left, returns it or None if not there
+  def getLeftPhantomRoadSlot(self):
+    return None
+
+  def getRightPhantomRoadSlot(self):
+    return None
+
+  def getLeftPhantomTownSlot(self):
+    return None
+
+  def getRightPhantomTownSlot(self):
+    return None
+
+
+  #Get the strength score of the principality
+  def getStrength(self):
+    return 0
+
+  #Gets the tournament score of the principality
+  def getTourney(self):
+    return 0
+
+  #Get the commerce of the principality
+  def getCommerce(self):
+    return 0
+
+  def getPoints(self):
+    return len(self.getSettlementSlots()) + 2 * len(self.getCitySlots)
+
+  def getPhantomTownSlots(self):
+    return [i for i in self.townSlots if i.item == None]
+
   def getTownSlots(self):
-    return self.townSlots
+    return [i for i in self.townSlots if i.item != None]
 
   def getSettlementSlots(self):
-    return set([i for i in self.townSlots if i.item.townType == Tags.SETTLEMENT])
+    return [i for i in self.townSlots if i.item != None and i.item.townType == Tags.SETTLEMENT]
 
   def getCitySlots(self):
-    return set([i for i in self.townSlots if i.item.townType == Tags.CITY])
+    return [i for i in self.townSlots if i.item != None and i.item.townType == Tags.CITY]
+
 
   def getExpansionSlots(self):
-    expansionSlots = set()
+    expansionSlots = []
     for town in self.getTownSlots():
       for section in town.getTownExpansionSlots():
         for slot in section:
-          expansionSlots.add(slot)
+          expansionSlots.append(slot)
     return expansionSlots
 
-  def getRoadBuildLocations(self):
-    return set([i for i in self.getRoadSlots() if i.item == None])
+  def getPhantomRoadSlots(self):
+    return [i for i in self.getRoadSlots() if i.item == None]
 
-  def getSettlementBuildLocations(self):
-    return set([i for i in self.getTownSlots() if i.item == None])
 
-  def getTownExpansionBuildLocations(self):
-    return set([i for i in self.getExpansionSlots() if i.item == None])
+  def getPhantomTownExpansionSlots(self):
+    return [i for i in self.getExpansionSlots() if i.item == None]
 
-  def getCityExpansionBuildLocations(self):
-    return set([i for i in self.getExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY])
+  def getPhantomCityExpansionSlots(self):
+    return [i for i in self.getExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
+
+  def getResourceSlots(self):
+    rescList = set()
+    for town in self.getTownSlots():
+      for rescSlot in town.getTownResourceSlots():
+        rescList.add(rescSlot)
+    return list(rescList)
 
   def getResourceCombos(self, resourceList):
-    return None
+     #We first get all of our resource tiles
+      resourceSlots = self.getResourceSlots()
 
-  def getSingleResourceCombos(self, resourceAmount, resourceType):
-    return None
+      listings = [[] for _ in range(Tags.NUMRESOURCES)]
+
+      resourceCombos = [[] for _ in range(Tags.NUMRESOURCES)]
+      
+      for resource in resourceSlots:
+        for i in range(Tags.NUMRESOURCES):
+          if resource.item.resource == Tags.RESCOURCELIST[i]:
+            listings[i].append(resource)
+
+      for i in range(Tags.NUMRESOURCES):
+        resourceCombos[i] = self.getSingleResourceCombination(resourceList[i], listings[i])
+
+      #We return all possibilities now. 
+      return self.getCombos(resourceCombos)
+
+  #Takes in a list of list resources of list combos
+  def getCombos(self, listings, start=0):
+    total = []
+    
+
+    cur = listings[start]
+
+    #check if we are at the end
+    if len(listings) == start + 1:
+      for curCombo in cur:
+        total.append([curCombo])
+    else:
+      prevs = self.getCombos(listings, start + 1)
+      for combo in prevs:
+        for curCombo in cur:
+          #Create a new list
+          temp = [i for i in combo]
+          temp.append(curCombo)
+
+          total.append(temp)
+
+
+    return total
+
+  def getSingleResourceCombination(self, totAmount, resourceSlots, start=0):
+    #Take a single resource out of the list, return either zero, one, two, three
+
+    #Base is when it turns out of tiles and there aren't enough resources
+    #Or when the resource cap is reached. 
+
+    slotsUsed = []
+    
+    curSlot = resourceSlots[start]
+
+    start += 1
+
+    amountLeft = sum([i.item.amount for i in resourceSlots[start:]])
+
+    #Go through the amount we can give to our pool
+    for curAmount in range(curSlot.item.amount + 1):
+      #If we would have too much
+      if curAmount > totAmount:
+        break
+      #Check if exact, if exact, you break at the end of this. 
+      elif curAmount == totAmount:
+        slotsUsed.append([curSlot for _ in range(curAmount)])
+        break
+      #Check if we would have enough down the line
+      elif amountLeft + curAmount >= totAmount:
+        recurse = self.getSingleResourceCombination\
+          (totAmount - curAmount, resourceSlots, start)
+
+        #Append number of this slot per each element in recurse
+        for element in recurse:
+          for _ in range(curAmount):
+            element.append(curSlot)
+          slotsUsed.append(element)
+
+        
+            
+    return slotsUsed
+
+##############################################################################
+################################### Pieces ###################################
+##############################################################################
+
+class Piece:
+  def __init__(self, princ, conditions=None, slot=None):
+    self.princ = princ
+
+    self.conditions = conditions
+    self.slot = slot
+
+class Town(Piece):
+    def __init__(self, princ, townType, slot=None):
+      super().__init__(princ, None, slot)
+
+      self.townType = townType
+
+    def __repr__(self):
+      return "{0}".format(self.townType)
+
+    def upgradeSettlement(self):
+      self.townType = Tags.CITY
+
+
+class Resource(Piece):
+  def __init__(self, princ, number, amount, resc, slot=None):
+    super().__init__(princ, None, slot)
+    self.number = number
+    self.amount = amount
+    self.resource = resc
+
+  def __repr__(self):
+    return "Number={0} Amount={1} Resc={2}".format(self.number, self.amount, self.resource)
   
+  def rollResc(self, rolledNumber):
+    if rolledNumber == self.number and self.amount < 3:
+      self.amount += 1
+
+  def giveResc(self):
+    if self.amount < 3:
+      self.amount += 1
+
+  def spendResc(self):
+    if self.amount == 0:
+      raise Exception("You cannot spend a resource you don't have")
+    else:
+      self.amount -= 1
+
+class Expansion(Piece):
+  def __init__(self, princ, name, tags, slot=None):
+    super().__init__(princ, None, slot)
+
+    self.name = name
+    self.tags = tags
+
+  def __repr__(self):
+    return "{0}".format(self.name)
+
+class Road(Piece):
+  def __init__(self, princ, slot=None):
+    super().__init__(princ, None, slot)
+
 #############################################################################
 ################################### Slots ###################################
 #############################################################################
@@ -182,9 +512,48 @@ class Slot:
     return temp
 
 class TownSlot(Slot):
-  def __init__(self, princ, TL, TR, BR, BL, ups, downs, leftRoad, rightRoad):
+  name = 0
+  def __init__(self, princ, leftRoad, rightRoad):
     super().__init__(princ, None)
 
+    self.leftRoadSlot = leftRoad
+    self.rightRoadSlot = rightRoad
+
+    self.name = TownSlot.name
+    TownSlot.name += 1
+
+    #Adds the slot to our list of town slots
+    if self.leftRoadSlot == None:
+      princ.townSlots.appendleft(self)
+    else:
+      princ.townSlots.append(self)
+
+  def __repr__(self):
+    return "Town {0}, {1} ".format(self.name, self.item)
+
+
+  def expand(self, princ, Top, Bottom, ups=None, downs=None):
+    
+    TL, TR, BR, BL = None, None, None, None 
+    #Check the slots of the road which side it is on. 
+    if self.rightRoadSlot != None:
+      TL = Top
+      BL = Bottom
+
+      TR = self.rightRoadSlot.rightTownSlot.topLeftSlot
+      BR = self.rightRoadSlot.rightTownSlot.bottomLeftSlot
+    else:
+      TR = Top
+      BR = Bottom
+
+      TL = self.leftRoadSlot.leftTownSlot.topRightSlot
+      BL = self.leftRoadSlot.leftTownSlot.bottomRightSlot
+
+    #Call initiate now
+    self.initiate(princ, TL, TR, BR, BL, ups, downs)
+
+  def initiate(self, princ, TL, TR, BR, BL, ups=None, downs=None):
+    
     #Link the resources
     self.topLeftSlot = TL
     self.topRightSlot = TR  
@@ -195,10 +564,6 @@ class TownSlot(Slot):
     self.upSlots = ups
     self.downSlots = downs
 
-    #Sets the roads
-    self.leftRoadSlot = leftRoad
-    self.rightRoad = rightRoad
-
     #Pair the slots to this town
     TL.rightTown = self
     BL.rightTown = self
@@ -206,236 +571,115 @@ class TownSlot(Slot):
     TR.leftTown = self
     TL.leftTown = self
 
+    if self.leftRoadSlot == None:
+      self.leftRoadSlot = RoadSlot(princ, None, self)
 
-    #sets the left Road Slot
-    if leftRoad != None:
-      leftRoad.rightTown = self
-    else:
-      slot = RoadSlot(princ, None, self)
-      self.leftRoadSlot = slot
-
-    #sets the right Road Slot
-    if rightRoad != None:
-      rightRoad.leftTown = self
-    else:
-      slot = RoadSlot(princ, self, None)
-      self.rightRoadSlot = slot
+    if self.rightRoadSlot == None:
+      self.rightRoadSlot = RoadSlot(princ, self, None)
 
     #sets the up Slots
-    if len(ups) == 0:
+    if ups == None:
+      self.upSlots = []
       self.upSlots.append(ExpansionSlot(princ, self))
       self.upSlots.append(ExpansionSlot(princ, self))
 
     #sets the down Slots
-    if len(downs) == 0: 
+    if downs == None: 
+      self.downSlots = []
       self.downSlots.append(ExpansionSlot(princ, self))
       self.downSlots.append(ExpansionSlot(princ, self))
 
+    #we want to pair the town and create it
+    town = Town(princ, Tags.SETTLEMENT)
+    self.setItem(town)
 
-    #Adds the slot to our list of town slots
-    princ.townSlots.add(self)
-
-  def getRoadSlots(self):
-    return [self.leftRoadSlot, self.leftRoadSlot]
+  def getTownRoadSlots(self):
+    return [self.leftRoadSlot, self.rightRoadSlot]
 
   def getTownExpansionSlots(self):
     return [self.upSlots, self.downSlots]
 
+  def getTownResourceSlots(self):
+    rescSlot = []
+
+    rescSlot.append(self.topLeftSlot)
+    rescSlot.append(self.bottomLeftSlot)
+    rescSlot.append(self.topRightSlot)
+    rescSlot.append(self.bottomRightSlot)
+
+    return rescSlot
+
+  def visualizeTown(self):
+    #Will look like road -exp,exp- :rescTL,rescBL: :towntype :rescTR,rescBR: -exp, exp- road
+    if self.item == None:
+      return "Phantom Town {0}".format(self.name)
+    leftRoad = self.leftRoadSlot.name
+    rightRoad = self.rightRoadSlot.name
+    up1 = self.upSlots[0].item
+    up2 = self.upSlots[1].item 
+    down1 = self.downSlots[0].item
+    down2 = self.downSlots[1].item
+
+    TL = "{0} {1} {2}".format(self.topLeftSlot.item.resource, self.topLeftSlot.item.amount, \
+      self.topLeftSlot.name)
+    BL = "{0} {1} {2}".format(self.bottomLeftSlot.item.resource, self.bottomLeftSlot.item.amount,\
+      self.bottomLeftSlot.name)
+    TR = "{0} {1} {2}".format(self.topRightSlot.item.resource, self.topRightSlot.item.amount,\
+      self.topRightSlot.name)
+    BR = "{0} {1} {2}".format(self.bottomRightSlot.item.resource, self.bottomRightSlot.item.amount,\
+      self.bottomRightSlot.name)
+
+    return "{0} -{1},{2}- :{3},{4}: {5} :{6},{7}: -{8},{9}- {10}"\
+    .format(leftRoad, up2, up1, TL, BL, self.name, TR, BR, down1, down2, rightRoad)
+
 class RoadSlot(Slot):
+  name = 0
   def __init__(self, princ, lefttown, righttown):
     super().__init__(princ, None)
 
-    self.leftTownSlot = lefttown
-    self.rightTownSlot = righttown
+    self.name = RoadSlot.name
+    RoadSlot.name += 1
+
+    if lefttown == None:
+      self.leftTownSlot = TownSlot(princ, None, self)
+    else:
+      self.leftTownSlot = lefttown
+
+    if righttown == None:
+      self.rightTownSlot = TownSlot(princ, self, None)
+    else:
+      self.rightTownSlot = righttown
+
+  def __repr__(self):
+    return "Road {0}".format(self.name)
 
 class ExpansionSlot(Slot):
+  name = 0
   def __init__(self, princ, town):
     super().__init__(princ, None)
 
+    self.name = ExpansionSlot.name
+    ExpansionSlot.name += 1
+
     self.townSlot = town
 
+  def __repr__(self):
+    return "Exp {0}".format(self.item)
+    
+
 class ResourceSlot(Slot):
+  name = 0
   def __init__(self, princ, leftTown, rightTown):
     super().__init__(princ, None)
+
+    self.name = ResourceSlot.name
+    ResourceSlot.name += 1
 
     self.leftTownSlot = leftTown
     self.rightTownSlot = rightTown
 
-
-######################################################################################
-################################### Slot Functions ###################################
-######################################################################################
-
-#Adds the item to the slot
-#
-#Does not return
-
-
-#Removes the item from the slot
-#
-#Returns the removed item
-
-
-
-######################################################################################
-################################### Town Functions ###################################
-######################################################################################
-
-#Places a Town within a Town Slot
-#
-#Does not return
-
-
-#Builds a Town Slot given the parameters, and links all the items to this town
-#
-#Returns the created Slot
-
-
-#Gets all the Expansions from a Town
-#
-#Returns a pair of expansions, ups and downs
-
-
-
-######################################################################################
-################################### City Functions ###################################
-######################################################################################
-
-#Upgrades the settlement into a City
-#
-#Does not return
-
-##########################################################################################
-################################### Resource Functions ###################################
-##########################################################################################
-
-#Places a Resource within a Resource Slot
-#
-#Does not return
-
-
-#Builds a Resource given the Resource parameters
-#
-#Returns the created Resource
-
-#Builds a Resource Slot given the parameters
-# 
-#Returns the created Resource Slot
-
-
-#Increments the Resource from the production Roll if roll matches
-#
-#Does not return
-
-
-#Increments the Resource from another source
-#
-#Does not return
-
-
-######################################################################################
-################################### Road Functions ###################################
-######################################################################################
-
-#Places the Road within a Road Slot
-#
-#Does not return
-
-#Builds a Road given the Road parameters
-#
-#Returns the created Road
-
-#Builds a Road Slot given the parameters
-#
-#Returns the created Resource Slot
-
-###########################################################################################
-################################### Expansion Functions ###################################
-###########################################################################################
-
-#Places the Expansion within a Expansion Slot
-#
-#Does not return
-
-
-#Removes the expansion from within a Expansion Slot
-#
-#Returns the removed expansion
-
-
-#Builds a Expansion given the Expansion parameters
-#
-#Returns the created Expansion
-
-#Builds a Expansion Slot given the parameters
-#
-#Returns the Created Expansion Slot
-
-
-##############################################################################################
-################################### Principality Functions ###################################
-##############################################################################################
-
-#Creates an initial principality
-#
-#Returns the created Principality
-
-
-#Gets all the Roads from a Principality
-#
-#Returns a set of all the Roads
-
-
-#Gets all the Towns from a Principality
-#
-#Returns a set of all the Towns
-
-
-#Gets all the Settlements from a Principality
-#
-#Returns a set of all the Settlements
-
-
-#Gets all the Towns from a Principality
-#
-#Returns a set of all the Cities
-
-
-#Gets all the Expansions from a Principality
-#
-#Returns a set of all the Expansions
-
-
-#Gets all the Road Slots that can be build from a Principality
-#
-#Returns a set of all the empty Road Slots
-
-
-#Gets all the Town Slots that can be built from a Principality
-#
-#Returns a list of all the emtpy Town Slots
-
-
-#Gets all the Town ExpansionSlots that can be built
-#
-#Returns a set of all empty Town Expansion Slots
-
-
-#Gets all the City Expansion Slots that can be built
-#
-#Returns a set of all empty City Expansion Slots
-
-#Gets all the valid actions of the principality
-#
-#Returns a set of all valid actions
-
-
-#Gets a set of lists of possible ways to get a number of required Resources
-#
-#Returns a set of lists of the resource Slots
-
-
-#Gets a set of lists of possible ways to get a number of a single Resource
+  def __repr__(self):
+    return "Resc {0}".format(self.item)
 
 
 
@@ -450,40 +694,38 @@ def initSimpleBoard(player1, player2):
     decks = []
 
     rescList1 = [(3,Tags.SHEEP), (6, Tags.GOLD), (5, Tags.BRICK),\
-      (2, Tags.ORE), (4, Tags.WOOD), (1, Tags.WHEAT)]
+      (1, Tags.WHEAT), (4, Tags.WOOD), (2, Tags.ORE)]
 
     rescList2 = [(5, Tags.WOOD), (2, Tags.WHEAT), (4, Tags.SHEEP),\
-      (3, Tags.ORE), (1, Tags.GOLD), (6, Tags.BRICK)]
+      (6, Tags.BRICK), (1, Tags.GOLD), (3, Tags.ORE)]
 
     resourceCards = [(1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE)]
 
     numberofPiles = 0
 
-    firstTurn = player1
+    firstTurn = 0
 
-    actions = set([Tags.BUILDROAD, Tags.BUILDSETTLEMENT, Tags.BUILDCITY])
+    actions = Tags.SIMPLEACTIONS
 
-    board = Board(decks, resourceCards, numberofPiles, None, None, firstTurn, actions)
+    board = Board(decks, resourceCards, numberofPiles, [None, None], firstTurn, actions)
 
     princ1 = Principality(board, player1, rescList1)
     princ2 = Principality(board, player2, rescList2)
 
-    board.princ1 = princ1
-    board.princ2 = princ2
+    board.principalities[0] = princ1
+    board.principalities[0] = princ2
 
     return board
 
 ############################################################################################
 ################################### Visualizer Functions ###################################
 ############################################################################################  
-
+"""
 #This will, given a board, visualize it in text
 #
 #does not return
-def visualizeTown(townSlot):
-  pass
 
-"""
+
 #Given a card, adds it to the player's hand
 #
 #gets the string, adds it to the list of player cards. 
@@ -557,75 +799,9 @@ def validActions(player, board, actionString):
   #Send the action list to player
   return actionPairs
   
-def getRescCombinations(princ, rescList):
-  #We first get all of our resource tiles
-  tiles = getObjects(getRescTiles(princ))
-
-  listings = [[],[],[],[],[],[]]
-  
-  for resource in tiles:
-    for i in range(6):
-      if resource.type == Tags.RESCOURCELIST[i]:
-        listings[i].append(resource)
-
-  for i in range(6):
-    listings[i] = _getSingleResourceCombination(rescList[i], listings[i])
-
-  #We return all possibilities now. 
-  return _getCombos(listings)
-
 
 #Gets all possible combintations of the elements. 
-def _getCombos(listings):
-  total = []
 
-  cur = listings.pop()
-  for rescs in cur:
-
-    if len(listings) != 0:
-      recurse = _getCombos(listings)
-      
-      for item in recurse:
-        item.append(rescs)
-        total.append(item)
-
-    else:
-      total.append(rescs)
-
-  return total
-
-
-
-
-def _getSingleResourceCombination(amount, resources):
-  #Take a single resource out of the list, return either zero, one, two, three
-
-  #Base is when it turns out of tiles and there aren't enough resources
-  #Or when the resource cap is reached. 
-
-  tilesUsed = []
-
-  tile = resources.pop()
-
-  amountLeft = sum([i.amount for i in resources])
-
-  for tileResc in range(tile.amount + 1):
-    #We append the amount of resources to the list of used.
-     if amount - tileResc > 0 and amountLeft + tileResc >= amount:
-        
-        recurse = []
-        if len(resources) != 0:
-          recurse = _getSingleResourceCombination(amount - tileResc, resources)
-        else:
-          return [[i for i in range(tileResc)]]     
-        
-        for _ in range(tileResc):
-          for element in recurse:
-            element.append(tile)
-            tilesUsed.append(element)
-
-  return tilesUsed
-        
 
 
 
@@ -907,20 +1083,85 @@ class TestStringMethods(unittest.TestCase):
   #We're just gonna test out the whole board to find the runtime errors
   def testBoard(self):
     #Lets create the board
-    board = initSimpleBoard("player1", "player2")
+    player1 = RandomPlayer(None, None)
+    player2 = RandomPlayer(None, None)
+    board = initSimpleBoard(player1, player2)
+    
 
     #Build a settlement for player1
-    princ1 = board.princ1
+    princ1 = board.principalities[0]
 
-    roadCons = princ1.getRoadBuildLocations()
+    roadCons = princ1.getPhantomRoadSlots()
 
     roadCon = roadCons.pop()
-
-    self.assertTrue(len(roadCons) == 1)
 
     road = Road(princ1)
 
     roadCon.setItem(road)
+
+    townslot = princ1.getPhantomTownSlots().pop()
+
+    topResc = Resource(princ1, 7, 2, Tags.WHEAT)
+    topRescSlot = ResourceSlot(princ1, None, None)
+    topRescSlot.setItem(topResc)
+
+    botResc = Resource(princ1, 7, 3, Tags.GOLD)
+    botRescSlot = ResourceSlot(princ1, None, None)
+    botRescSlot.setItem(botResc)
+
+    townslot.expand(princ1, topRescSlot, botRescSlot)
+
+    ###############################################
+
+    roadCons1 = princ1.getPhantomRoadSlots()
+
+    roadCon1 = roadCons1.pop()
+
+    road1 = Road(princ1)
+
+    roadCon1.setItem(road1)
+
+    townslot1 = princ1.getPhantomTownSlots().pop()
+
+    topResc1 = Resource(princ1, 7, 2, Tags.WOOD)
+    topRescSlot1 = ResourceSlot(princ1, None, None)
+    topRescSlot1.setItem(topResc1)
+
+    botResc1 = Resource(princ1, 7, 2, Tags.BRICK)
+    botRescSlot1 = ResourceSlot(princ1, None, None)
+    botRescSlot1.setItem(botResc1)
+
+    townslot1.expand(princ1, topRescSlot1, botRescSlot1)
+
+    ###############################################
+
+
+    # #Now get the settlement build locations
+    # townCons = princ1.getSettlementSlots()
+
+    # townCon = townCons.pop()
+
+    # town = Town(princ1, Tags.SETTLEMENT)
+
+    # townCon.setItem(town)
+
+    #Now we want to test gettin g resources
+    #RESCOURCELIST = [GOLD, ORE, BRICK, WOOD, WHEAT, SHEEP]
+
+    #princ1.getCombos([["a", "b", "c"],["A","B","C"],[1,2,3]])
+
+    #wants = [[[k.item.resource for k in i] for i in j] for j in princ1.getResourceCombos([2,1,1,1,6,1])]
+
+    # goldSlots = [i for i in princ1.getResourceSlots() if i.item.resource == Tags.GOLD]
+
+    # wantgold = [[i.name for i in j] for j in princ1.getSingleResourceCombination(3, goldSlots)]
+
+    print("Winner is {0}".format(board.playGame()))
+
+
+
+    for town in princ1.townSlots:
+      print(town.visualizeTown())
 
 
 
