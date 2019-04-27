@@ -6,6 +6,8 @@ from collections import deque
 
 import random
 
+import pdb
+
 #This is a board for python. 
 
 ###################################################################################
@@ -13,10 +15,18 @@ import random
 ###################################################################################
 
 class Player:
+  name = 0
   def __init__(self, board, princ):
+    self.name = Player.name
+    Player.name += 1
     self.board = board
 
     self.princ = princ
+
+    # self.actionsTaken = []
+
+  def __repr__(self):
+    return "{0}".format(self.name)
 
   #Takes in a string of the conditions just taken, along with the possible actions
   #ValidActions is a dictionary, with slots, then combinations
@@ -28,9 +38,27 @@ class Player:
 class RandomPlayer(Player):
   def __init__(self, board, princ):
     super().__init__(board, princ)
+    
 
   def getAction(self, actString, validActions):
-    actionToTake = random.choice(validActions.keys())
+    #pdb.set_trace()
+    #We want to get all valid actions if we can take an action
+    actions = [i for i in list(validActions.keys()) if i != Tags.TURNEND and i != Tags.DONOTHING]
+
+    actionToTake = None
+    if len(actions) == 0:
+      #Check if both have occured
+      if len(validActions.keys()) > 1:
+        raise Exception("Should not have these together {0}".format(validActions.keys()))
+      else:
+        actionToTake = list(validActions.keys())[0]
+    else:
+      actionToTake = random.choice(list(actions))
+
+    # self.actionsTaken.append(actionToTake)
+
+    if len(validActions[actionToTake]) == 0:
+      return [actionToTake, []]
 
     slot = random.choice(validActions[actionToTake][0])
     resources = random.choice(validActions[actionToTake][1])
@@ -56,6 +84,8 @@ class Board:
     self.nextActionRoll = None
 
     self.winner = None
+
+    # self.actionsTaken = []
     
 
   #Checks if a road can be built
@@ -78,21 +108,84 @@ class Board:
   #Builds a settlement at the desired location
   def buildSettlement(self, princ, townSlot):
     #pop the two resources
-    top = self.resourceCards.pop()
-    bottom = self.resourceCards.pop()
+    topRaw = self.resourceCards.pop()
+    topSlot = ResourceSlot(princ, None, None) 
+    top = Resource(princ, topRaw[0], 0, topRaw[1])
+    topSlot.setItem(top)
+
+    bottomRaw = self.resourceCards.pop()
+    bottomSlot = ResourceSlot(princ, None, None)
+    bottom = Resource(princ, bottomRaw[0], 0, bottomRaw[1])
+    bottomSlot.setItem(bottom)
 
     town = Town(princ, Tags.SETTLEMENT)
-    townSlot.expand(princ, top, bottom)
+    townSlot.expand(princ, topSlot, bottomSlot)
 
     townSlot.setItem(town)
 
   #Builds a city at the desired location
   def buildCity(self, princ, townSlot):
-    townSlot.upgradeSettlement()
+    townSlot.item.upgradeSettlement()
 
   #Builds an expantion at the desired location
   def buildExpansion(self, princ, expansion, expansionSlot):
     expansionSlot.setItem(expansion)
+
+  
+  #Checks if some action is in valid actions
+  def canPerformAction(self, princ, validActions, actionType, info):
+    #Check for the type of action
+
+    #Check if it's a build type action 
+    if actionType == Tags.BUILDCITY or actionType == Tags.BUILDROAD or actionType == Tags.BUILDSETTLEMENT:
+      #Info now should be a list 
+      if actionType in validActions:
+        #This should get us a list 
+        if info[0] in validActions[actionType][0]:
+          if info[0] in validActions[actionType][1]:
+            return True
+      
+    if actionType == Tags.TURNEND:
+      return princ.player == princ.board.getCurrentPlayer()
+
+    if actionType == Tags.DONOTHING:
+      return princ.player != princ.board.getCurrentPlayer()
+    
+    return False
+
+  #Performs the action
+  def performAction(self, princ, actionObject):
+    #Action is name, then slot, then resources
+    actionName = actionObject[0]
+
+    # self.actionsTaken[-1].append("Player {0} took {1}".format(player, actionName))
+
+    if actionName == Tags.BUILDROAD or \
+      actionName == Tags.BUILDSETTLEMENT or actionName == Tags.BUILDCITY:
+
+      resources = actionObject[2]
+      buildSlot = actionObject[1]
+      #pdb.set_trace()
+      if actionName == Tags.BUILDROAD:
+        princ.spendResources(resources)
+
+        princ.buildRoad(princ, buildSlot)  
+
+      elif actionName == Tags.BUILDSETTLEMENT:
+        princ.spendResources(resources)
+
+        princ.buildSettlement(princ, buildSlot)
+      elif actionName == Tags.BUILDCITY:
+        princ.spendResources(resources)
+
+        princ.buildCity(princ, buildSlot)
+
+      elif actionName == Tags.TURNEND:
+        return True
+      elif actionName == Tags.DONOTHING:
+        pass
+
+
 
   #Returns a list of valid actions, and a list of costs and or targets
   def getValidActions(self, princ):
@@ -103,8 +196,8 @@ class Board:
       turnRestriction = action[2]
 
       #Check to see if the player is able to play any actions
+      #pdb.set_trace()
       if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
-
         combos = princ.getResourceCombos(cost)
         #If we can pay for the action
         if len(combos) != 0:
@@ -121,9 +214,11 @@ class Board:
           if len(locations) != 0:
             validActions[actionName] = [locations, combos]
 
-    #Now append our turnend action
+    #Now append our turnend action, or do nothing
     if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
       validActions[Tags.TURNEND] = []
+    else:
+      validActions[Tags.DONOTHING] = []
     return validActions
 
   def playGame(self):
@@ -149,25 +244,43 @@ class Board:
 
   def turnPhase(self):
     for player in self.getPriorityOrder():
-      playerAction = player.getActions(Tags.MAINPHASE, self.getValidActions(player.princ))
-
+      #pdb.set_trace()
+      playerAction = player.getAction(Tags.MAINPHASE, self.getValidActions(player.princ))
+      
       #Action is name, then slot, then resources
       actionName = playerAction[0]
-      if actionName == Tags.BUILDROAD:
-        for slot in playerAction[2]:
-          slot.item.spendResc()
-        self.buildRoad(player.princ, playerAction[1])    
-      elif actionName == Tags.BUILDSETTLEMENT:
-        for slot in playerAction[2]:
-          slot.item.spendResc()   
-        self.buildSettlement(player.princ, playerAction[1])
-      elif actionName == Tags.BUILDCITY:
-        for slot in playerAction[2]:
-          slot.item.spendResc()
-        self.buildCity(player.princ, playerAction[1])
-      elif actionName == Tags.TURNEND:
+
+      # self.actionsTaken[-1].append("Player {0} took {1}".format(player, actionName))
+
+      if actionName == Tags.BUILDROAD or \
+        actionName == Tags.BUILDSETTLEMENT or actionName == Tags.BUILDCITY:
+
+        resources = playerAction[2]
+        buildSlot = playerAction[1]
+        #pdb.set_trace()
+        if actionName == Tags.BUILDROAD:
+          player.princ.spendResources(resources)
+
+          self.buildRoad(player.princ, buildSlot)  
+
+        elif actionName == Tags.BUILDSETTLEMENT:
+          player.princ.spendResources(resources)
+
+          self.buildSettlement(player.princ, buildSlot)
+        elif actionName == Tags.BUILDCITY:
+          player.princ.spendResources(resources)
+
+          self.buildCity(player.princ, buildSlot)
+
         self.setWin()
+
+        if self.checkWin():
+          return True
+
+      elif actionName == Tags.TURNEND:
         return True
+      elif actionName == Tags.DONOTHING:
+        pass
 
     self.setWin()
     return False
@@ -184,6 +297,7 @@ class Board:
     for princ in self.principalities:
       for resourceSlot in princ.getResourceSlots():
         resourceSlot.item.rollResc(roll)
+
 
   #Only either a year of plenty or "Null", impliment this later
   # def rollActionDice(self):
@@ -206,7 +320,7 @@ class Board:
       self.currentTurn = 0
   
   def getCurrentPlayer(self):
-    return self.principalities[self.currentTurn]
+    return self.principalities[self.currentTurn].player
 
   #get the order in which the players act, based upon the current turn
   def getPriorityOrder(self):
@@ -273,27 +387,90 @@ class Principality:
 
     rightTownSlot.setItem(rightTown)
 
-  def getRoadSlots(self):
+  def __repr__(self):
+    #These are the towns
+    towns = self.getTownSlots()
+
+    firstTown = towns[0]
+
+    TL = firstTown.topLeftSlot
+    BL = firstTown.bottomLeftSlot
+
+    retString = "{0}          {1}          {2}\n\n".format(BL, firstTown.leftRoadSlot, TL)
+
+    for town in towns:
+
+      down1 = town.downSlots[0]
+      down2 = town.downSlots[1]
+
+      up1 = town.upSlots[0]
+      up2 = town.upSlots[1]
+
+      retString += "                 {0}                \n\n".format(town)
+
+      TR = town.topRightSlot
+      BR = town.bottomRightSlot
+
+      retString += "{0}          {1}          {2}\n\n".format(BR, town.rightRoadSlot, TR)
+
+    retString += "We have {0} victory points\n\n".format(self.getPoints())
+    #retString += "Actions taken in order were {0}\n\n".format(self.player.actionsTaken)
+    return retString
+
+
+  def getALLRoadSlots(self):
     roadSlots = []
     for town in self.getTownSlots():
       for road in town.getTownRoadSlots():
-        if road != None:
+        if road not in roadSlots:
           roadSlots.append(road)
     return roadSlots
 
+  def getPhantomRoadSlots(self):
+    return [i for i in self.getALLRoadSlots() if i.item == None]
 
-  #Returns the phantom road slot on left, returns it or None if not there
+  def getRoadSlots(self):
+    return [i for i in self.getALLRoadSlots() if i.item != None]
+
+  def getAllTownSlots(self):
+    return self.townSlots
+
+  def getPhantomTownSlots(self):
+    return [i for i in self.getAllTownSlots() if i.item == None]
+
+  def getTownSlots(self):
+    return [i for i in self.getAllTownSlots() if i.item != None]
+
+  def getSettlementSlots(self):
+    return [i for i in self.getTownSlots() if i.item.townType == Tags.SETTLEMENT]
+
+  def getCitySlots(self):
+    return [i for i in self.getTownSlots() if i.item.townType == Tags.CITY]
+
+  #Functions to help where you can build. 
   def getLeftPhantomRoadSlot(self):
+    if self.townSlots[0].item == None:
+      return self.townSlots[0]
+    
     return None
 
   def getRightPhantomRoadSlot(self):
+    if self.townSlots[-1].item == None:
+      return self.townSlots[-1]
+    
     return None
 
   def getLeftPhantomTownSlot(self):
-    return None
+    if self.townSlots[0].item == None:
+      return None
+
+    return self.townSlots[0].leftRoadSlot
 
   def getRightPhantomTownSlot(self):
-    return None
+    if self.townSlots[-1].item == None:
+      return None
+
+    return self.townSlots[-1].rightRoadSlot
 
 
   #Get the strength score of the principality
@@ -309,38 +486,22 @@ class Principality:
     return 0
 
   def getPoints(self):
-    return len(self.getSettlementSlots()) + 2 * len(self.getCitySlots)
+    return len(self.getSettlementSlots()) + (2 * len(self.getCitySlots()))
 
-  def getPhantomTownSlots(self):
-    return [i for i in self.townSlots if i.item == None]
-
-  def getTownSlots(self):
-    return [i for i in self.townSlots if i.item != None]
-
-  def getSettlementSlots(self):
-    return [i for i in self.townSlots if i.item != None and i.item.townType == Tags.SETTLEMENT]
-
-  def getCitySlots(self):
-    return [i for i in self.townSlots if i.item != None and i.item.townType == Tags.CITY]
-
-
-  def getExpansionSlots(self):
+  def getALLExpansionSlots(self):
     expansionSlots = []
     for town in self.getTownSlots():
       for section in town.getTownExpansionSlots():
         for slot in section:
-          expansionSlots.append(slot)
+          if slot not in expansionSlots:
+            expansionSlots.append(slot)
     return expansionSlots
 
-  def getPhantomRoadSlots(self):
-    return [i for i in self.getRoadSlots() if i.item == None]
-
-
   def getPhantomTownExpansionSlots(self):
-    return [i for i in self.getExpansionSlots() if i.item == None]
+    return [i for i in self.getALLExpansionSlots() if i.item == None]
 
   def getPhantomCityExpansionSlots(self):
-    return [i for i in self.getExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
+    return [i for i in self.getALLExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
 
   def getResourceSlots(self):
     rescList = set()
@@ -348,6 +509,12 @@ class Principality:
       for rescSlot in town.getTownResourceSlots():
         rescList.add(rescSlot)
     return list(rescList)
+
+  #Given a list of list of resource slots, we spend them
+  def spendResources(self, rescList):
+    for rescType in rescList:
+      for rescSlot in rescType:
+        rescSlot.item.spendResc()
 
   def getResourceCombos(self, resourceList):
      #We first get all of our resource tiles
@@ -462,7 +629,7 @@ class Resource(Piece):
     self.resource = resc
 
   def __repr__(self):
-    return "Number={0} Amount={1} Resc={2}".format(self.number, self.amount, self.resource)
+    return "|{0}| {2} +{1}".format(self.number, self.amount, self.resource)
   
   def rollResc(self, rolledNumber):
     if rolledNumber == self.number and self.amount < 3:
@@ -491,6 +658,9 @@ class Expansion(Piece):
 class Road(Piece):
   def __init__(self, princ, slot=None):
     super().__init__(princ, None, slot)
+
+  def __repr__(self):
+    return "Road"
 
 #############################################################################
 ################################### Slots ###################################
@@ -529,10 +699,11 @@ class TownSlot(Slot):
       princ.townSlots.append(self)
 
   def __repr__(self):
-    return "Town {0}, {1} ".format(self.name, self.item)
+    return " {1} {0} ".format(self.name, self.item)
 
 
   def expand(self, princ, Top, Bottom, ups=None, downs=None):
+    
     
     TL, TR, BR, BL = None, None, None, None 
     #Check the slots of the road which side it is on. 
@@ -550,6 +721,7 @@ class TownSlot(Slot):
       BL = self.leftRoadSlot.leftTownSlot.bottomRightSlot
 
     #Call initiate now
+    #pdb.set_trace()
     self.initiate(princ, TL, TR, BR, BL, ups, downs)
 
   def initiate(self, princ, TL, TR, BR, BL, ups=None, downs=None):
@@ -640,18 +812,24 @@ class RoadSlot(Slot):
     self.name = RoadSlot.name
     RoadSlot.name += 1
 
-    if lefttown == None:
-      self.leftTownSlot = TownSlot(princ, None, self)
-    else:
-      self.leftTownSlot = lefttown
-
-    if righttown == None:
-      self.rightTownSlot = TownSlot(princ, self, None)
-    else:
-      self.rightTownSlot = righttown
+    self.rightTownSlot = righttown
+    self.leftTownSlot = lefttown
 
   def __repr__(self):
-    return "Road {0}".format(self.name)
+    if self.item == None:
+      return ""
+    else:
+      return "{1} {0}".format(self.name, self.item)
+
+  def setItem(self, item):
+    super().setItem(item)
+
+    if self.leftTownSlot == None:
+      self.leftTownSlot = TownSlot(self.princ, None, self)
+
+    if self.rightTownSlot == None:
+      self.rightTownSlot = TownSlot(self.princ, self, None)
+
 
 class ExpansionSlot(Slot):
   name = 0
@@ -664,7 +842,7 @@ class ExpansionSlot(Slot):
     self.townSlot = town
 
   def __repr__(self):
-    return "Exp {0}".format(self.item)
+    return "{0}".format(self.item)
     
 
 class ResourceSlot(Slot):
@@ -679,7 +857,7 @@ class ResourceSlot(Slot):
     self.rightTownSlot = rightTown
 
   def __repr__(self):
-    return "Resc {0}".format(self.item)
+    return "{0}".format(self.item)
 
 
 
@@ -699,7 +877,18 @@ def initSimpleBoard(player1, player2):
     rescList2 = [(5, Tags.WOOD), (2, Tags.WHEAT), (4, Tags.SHEEP),\
       (6, Tags.BRICK), (1, Tags.GOLD), (3, Tags.ORE)]
 
-    resourceCards = [(1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE)]
+    resourceCards = [(1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+      (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+        (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+          (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+            (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+              (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                  (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                    (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                      (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                        (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
+                          (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),]
 
     numberofPiles = 0
 
@@ -707,375 +896,17 @@ def initSimpleBoard(player1, player2):
 
     actions = Tags.SIMPLEACTIONS
 
+    #(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions)
     board = Board(decks, resourceCards, numberofPiles, [None, None], firstTurn, actions)
 
     princ1 = Principality(board, player1, rescList1)
     princ2 = Principality(board, player2, rescList2)
 
     board.principalities[0] = princ1
-    board.principalities[0] = princ2
+    board.principalities[1] = princ2
 
     return board
 
-############################################################################################
-################################### Visualizer Functions ###################################
-############################################################################################  
-"""
-#This will, given a board, visualize it in text
-#
-#does not return
-
-
-#Given a card, adds it to the player's hand
-#
-#gets the string, adds it to the list of player cards. 
-def giveCard(card, princ):
-  princ.cards.Add(card)
-
-#Allows the player to search a deck, and select any card from it
-#
-#Gives the player the list
-#The player then returns a an index of that list for the card they want
-#That card is then removed from the deck, and added to their hand
-#The deck is then reshuffled. 
-def searchDeck(deck, player):
-  #Just send the deck and the tag to the player for them to select
-  result = player.action(Tags.DRAWFROMDECK, deck)
-
-  #Give the card to the player
-  giveCard(result, player.princ)
-
-  #Shuffle the deck
-  shuffle(deck)
-
-
-#This shuffles the deck randomly
-#
-#Given this list, shuffles the list
-def shuffle(deck):
-  pass
-
-#A valid function determines when an action can be played
-#
-#If an action can be played in multiple ways, it should return all of them. 
-#The returned actions, include the resources and cards spent on the action. 
-#Action string is extra info. 
-# 
-# Returns list of "actions" which is list of name input, then name output 
-def validActions(player, board, actionString):
-  #We check trades here, we will do that later, not now
-
-  #Now we check to see if we can build, get all phantoms. 
-  phantoms = getPhantoms(player.princ)
-
-  actionPairs = set()
-
-  #We get all of the buildings now that we can bulid. 
-  #We won't use action cards for now, only buildings
-  for action in board.actions:
-    #Each action is a building and a cost.
-    #Cost is a list of resources
-    partitions = getRescCombinations(player.princ, action[1])
-
-    if len(partitions) != 0:
-      for partition in partitions:
-        if player == board.currentTurn:
-
-          if action[0] == Tags.BUILDROAD:
-            for slot in getRoadPhantoms(player.princ):
-              actionPairs.add(action[0], partition, [slot])
-          
-          if action[0] == Tags.BUILDSETTLEMENT:
-            for slot in getSettlementExpansionPhantoms(player.princ):
-              actionPairs.add(action[0], partition, [slot])
-
-          if action[0] == Tags.BUILDCITY:
-            for slot in player.princ.towns:
-              actionPairs.add(action[0], partition, [slot])
-
-          #Now we want to append to action pairs, the latter is a list of targets
-          #if action
-
-  #Send the action list to player
-  return actionPairs
-  
-
-#Gets all possible combintations of the elements. 
-
-
-
-
-#Signals to the players that a settlement is being built
-#
-#board is sent to players, sending the phantom settlement, along with the current board state
-#each card has a valid function to determine if can be played
-#Each card is searched with that valid function, list of valid actions are then sent to the player
-def onSetBuild(board):
-  pass
-
-#Signals to the players that a road is being built
-#
-#board is sent to players, sending the phantom road, along with the current board state
-#each card has a valid function to determine if it can be played
-#Each card is searched with that valid function, list of valid actions are then sent to the player
-def onRoadBuild(board):
-  pass
-
-#Signals to the players that a city is being built
-#
-#board is sent to players, sending the phantom city, along with the current board state
-#each card has a valid function to determine if it can be played
-#Each card is searched with that valid function, list of valid actions are then sent to the player
-def onCityBuild(board):
-  pass
-
-#Signals to the players that an action is being played
-#
-#Actions cards differ, so board is sent to the player, as is the action card being played
-#Each card has a valid function to determine if it can be played
-#Each card is searched with that valid function, list of valid actions are then sent to the player
-def onActionPlay(board):
-  pass
-
-#Singls to the players that a turn has started
-def onTurnStart(board):
-  pass
-
-#Signals to the players that a mainphase turn has begun. 
-def onMainPhase(board):
-  pass
-
-#Signals to the players that the endturn is occuring.
-def onTurnEnd(board):
-  pass
-
-#Checks to see if the game has ended, and awards a winner
-#
-#goes through each person's principalities, checks all the objects for ones with victory points
-#returns the number of victory points
-def checkEnd(board):
-  pass
-
-
-##################
-#Player Functions#
-##################
-#
-#These give the board and the trigger to the player, and get an action 
-#from a player. 
-
-##################
-#Helper Functions#
-##################
-#
-#These do not modify the board, and just get information in some way
-
-#Determines which player goes first. 
-#
-#returns the number of who goes first
-def detFirst(player1, player2):
-  return player1
-
-#Determines which player acts first in the case of a tie, based on board state
-#
-#Returns the player
-def detPrior(board):
-  return board.currentTurn
-
-#Gets the knight strength of a player
-#
-#Goes through each expansion, gets it's knight strength, and then returns that value
-#
-#Returns an integer of the strength
-def getStrength(princ):
-  pass
-
-#Gets the tournament strength of a player
-#
-#Goes through each expansion, gets it's knight tourney, and returns that value
-#
-#returns an integer of the tourney value
-def getTourney(princ):
-  pass
-
-#Gets the commerce points of a player
-#
-#Goes through each expansion, gets it's commerce strength, and returns that value. 
-#
-#Returns the value as an integer. 
-def getCommerce(princ):
-  pass
-
-#Searches the pile of things 
-#
-#Goes through all of the things, and selects the items with the tag
-def getTagItems(princ, tag):
-  pass
-
-###############
-#Game Function#
-###############
-#
-#These functions fasciliate the running of the game of catan
-
-#Rolls the production dice
-#
-#Dice rolls are pregenerated before, this pops from the dice list
-def rollProductionDice(board):
-  roll = board.resolveRolls.pop()
-
-  #We should assign resources to people.
-  # 
-  #We simply go through each settlement and get all of the resources and their numbers
-  #Then, we assign resources to them as we see fit.  
-
-  princs = [board.princ2, board.princ1]
-
-  #We assign to both players
-  for princ in princs:
-    rescs = getObjects(getRescTiles(princ))
-
-    #We assign resources
-    for res in rescs:
-      if res.number == roll:
-
-        #We check if there is overflow
-        if res.amount == 3:
-          pass
-        #We then assign resource otherwise
-        else:
-          res.amount += 1
-
-  #We have now assigned resources properly
-
-
-  
-
-#Rolls the action dice
-#
-#Dice rolls are pregenerated before, this pops from the dice list
-def rollActionDice(board):
-  board.resolveRolls.pop()
-
-  #We go and handle what happens with each event
-
-  #We actually don't have to do anything right now, just ignore this
-
-
-
-#Takes in a list and partitions the list into a list of how many
-#
-#Takes in the list of all the cards, shuffles them
-#Then breaks them into equal partitions, or nearly equal
-#
-#Returns the number as lists
-def partitionDecks(numdecks, listofCards):
-    return 0
-
-#When called, allows the player to have a mainphase action
-#
-#Sends player Board
-#Player returns action, string of action, pool of resources, and card
-#Call begin that specific action phase. 
-#resolve action
-#return true if action wasn't empty action, return false if was
-def mainphase(board):
-  return 0
-
-#When called, simulates a turn of one player. 
-#
-#Speed up, allow suppression of phases
-#
-#First calls turnstart()
-#Calls rollaction()
-#resolves actiontaken
-#
-#calls rollproduction
-#calls productiontaken()
-#
-#calls mainphase loop of player
-#once completed, call turnend
-#call resolveturnend
-def turn(board):
-  onTurnStart(board)
-
-  rollActionDice(board)
-
-  rollProductionDice(board)
-
-  turnEnd = Tags.TURNCONTINUE
-
-  while turnEnd == Tags.TURNCONTINUE:
-    turnEnd = mainphase(board)
-
-    if turnEnd == Tags.GAMEEND:
-      return True
-      
-
-
-#Function that when called, runs the game
-#
-#Initialize the cards to be played with in a deck. 
-#Call initPrincipality twice, for both players, assign names
-#Initiate respective tokens
-#
-#Call function to determine who goes first
-#Allow both to select and search a deck, determining who goes first.
-#Once both select the deck, cause them to do this operation three times. 
-#
-#Proceed with turn loop game until completion
-#
-#Log any information of the game as appropriate then exit
-def playGame(board, player1, player2):
-
-  #We initiate everything we need for the board
-  cards = []
-  cardDefs = dict()
-
-  resourceCards = [Tags.BRICK, Tags.BRICK, Tags.WOOD, Tags.WHEAT]
-
-  numberofPiles = 0
-
-  productionRolls = [1,2,3,4,5,6,6,5,4,3,2,1]
-
-  actionRolls = [6,5,4,3,2,1,1,2,3,4,5,6]
-  
-  resolveRolls = [3,3,3,3,3,3,3,3,3,3,3]
-
-  actions = Tags.ACTIONS
-
-  board = initBoard(cards, resourceCards, cardDefs, numberofPiles, player1, player2, productionRolls, actionRolls, resolveRolls, actions)
-
-  #Allow both players to select a deck, skip this step for now, do this three times
-
-  end = False
-
-  while not end:
-    end = turn(board)
-
-  #Now we are done with the game
-  
-
-
-#Initiates the board to be played on. 
-#
-#Initiates all the tokens, the principalities, 
-def initBoard(cards, resourceCards, cardDefs, numberofPiles, player1, player2, productionRolls, actionRolls, resolveRolls, actions):
-
-    decks = partitionDecks(numberofPiles, cards)
-
-    rescList1 = [(Tags.SHEEP, 3), (Tags.GOLD, 6), (Tags.BRICK, 5), (Tags.ORE, 2),(Tags.WOOD,4),(Tags.WHEAT,1)]
-    rescList2 = [(Tags.WOOD, 5), (Tags.WHEAT, 2), (Tags.SHEEP, 4), (Tags.ORE, 3), (Tags.GOLD, 1), (Tags.BRICK, 6)]
-    
-    currentTurn = detFirst(player1, player2)
-
-    princ1 = initPrincipality(None, rescList1, player1)
-    princ2 = initPrincipality(None, rescList2, player2)
-
-    board = Board(decks, resourceCards, cardDefs, numberofPiles, princ1, princ2, currentTurn, productionRolls, actionRolls, resolveRolls, actions)
-
-    return board
-"""
 
 #Define the tests here
 class TestStringMethods(unittest.TestCase):
@@ -1083,86 +914,24 @@ class TestStringMethods(unittest.TestCase):
   #We're just gonna test out the whole board to find the runtime errors
   def testBoard(self):
     #Lets create the board
+
+    # totalsNot = 0
+    # for _ in range(100):
+    #   player1 = RandomPlayer(None, None)
+    #   player2 = RandomPlayer(None, None)
+    #   board = initSimpleBoard(player1, player2)    
+
+    #   if board.playGame().princ.getPoints() != 10:
+    #     totalsNot += 1
+
+    # print(totalsNot)
+
+
+
     player1 = RandomPlayer(None, None)
     player2 = RandomPlayer(None, None)
-    board = initSimpleBoard(player1, player2)
-    
-
-    #Build a settlement for player1
-    princ1 = board.principalities[0]
-
-    roadCons = princ1.getPhantomRoadSlots()
-
-    roadCon = roadCons.pop()
-
-    road = Road(princ1)
-
-    roadCon.setItem(road)
-
-    townslot = princ1.getPhantomTownSlots().pop()
-
-    topResc = Resource(princ1, 7, 2, Tags.WHEAT)
-    topRescSlot = ResourceSlot(princ1, None, None)
-    topRescSlot.setItem(topResc)
-
-    botResc = Resource(princ1, 7, 3, Tags.GOLD)
-    botRescSlot = ResourceSlot(princ1, None, None)
-    botRescSlot.setItem(botResc)
-
-    townslot.expand(princ1, topRescSlot, botRescSlot)
-
-    ###############################################
-
-    roadCons1 = princ1.getPhantomRoadSlots()
-
-    roadCon1 = roadCons1.pop()
-
-    road1 = Road(princ1)
-
-    roadCon1.setItem(road1)
-
-    townslot1 = princ1.getPhantomTownSlots().pop()
-
-    topResc1 = Resource(princ1, 7, 2, Tags.WOOD)
-    topRescSlot1 = ResourceSlot(princ1, None, None)
-    topRescSlot1.setItem(topResc1)
-
-    botResc1 = Resource(princ1, 7, 2, Tags.BRICK)
-    botRescSlot1 = ResourceSlot(princ1, None, None)
-    botRescSlot1.setItem(botResc1)
-
-    townslot1.expand(princ1, topRescSlot1, botRescSlot1)
-
-    ###############################################
-
-
-    # #Now get the settlement build locations
-    # townCons = princ1.getSettlementSlots()
-
-    # townCon = townCons.pop()
-
-    # town = Town(princ1, Tags.SETTLEMENT)
-
-    # townCon.setItem(town)
-
-    #Now we want to test gettin g resources
-    #RESCOURCELIST = [GOLD, ORE, BRICK, WOOD, WHEAT, SHEEP]
-
-    #princ1.getCombos([["a", "b", "c"],["A","B","C"],[1,2,3]])
-
-    #wants = [[[k.item.resource for k in i] for i in j] for j in princ1.getResourceCombos([2,1,1,1,6,1])]
-
-    # goldSlots = [i for i in princ1.getResourceSlots() if i.item.resource == Tags.GOLD]
-
-    # wantgold = [[i.name for i in j] for j in princ1.getSingleResourceCombination(3, goldSlots)]
-
-    print("Winner is {0}".format(board.playGame()))
-
-
-
-    for town in princ1.townSlots:
-      print(town.visualizeTown())
-
+    board = initSimpleBoard(player1, player2)    
+    print(board.playGame().princ)
 
 
     """

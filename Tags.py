@@ -54,6 +54,7 @@ BUILDCITY = "BuildCity"
 
 TURNCONTINUE = "TurnContinue"
 TURNEND = "TurnEnd"
+DONOTHING = "DoNothing"
 GAMEEND = "GameEnd"
 
 SIMPLEACTIONS = [[BUILDROAD, [0,0,2,1,0,0], True], [BUILDSETTLEMENT, [0,0,1,1,1,1], True],\
