@@ -15,65 +15,252 @@ import pdb
 ###################################################################################
 
 class Player:
+  """A player object given a state will give actions
+
+  A player is assumed to, when asked for some object, return 
+  a valid object, if none are valid, it should return None
+
+  """
   name = 0
   def __init__(self, board, princ):
     self.name = Player.name
     Player.name += 1
+
     self.board = board
 
     self.princ = princ
 
-    # self.actionsTaken = []
 
   def __repr__(self):
     return "{0}".format(self.name)
 
-  #Takes in a string of the conditions just taken, along with the possible actions
-  #ValidActions is a dictionary, with slots, then combinations
-  #Returns list of name, slot, resources
-  def getAction(self, actString, validActions):
-    #returns the actionpair, along with an object of additional information. 
-    pass
+  def getAction(self, phase, actionPerformed=None):
+    """Given the current phase and the action taken by the main player, return the action string
+
+    Args:
+      phase (string): The phase this is occuring in
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      string: The action this player chooses to perform, none if can't or chooses not to
+    """
+
+    return None
+
+  def selectPlayer(self, phase, actionPerformed=None):
+    """Given the current phase and the action taken by the main player, return the chosen player
+
+    Args:
+      phase (string): The phase this is occuring in
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      player: The player who should be chosen, or none if not possible
+    """
+
+    return None
+
+  def selectResourceSlots(self, phase, resourceTypes, actionPerformed=None):
+    """Given the current phase and the action taken by the main player, selects resource slots
+
+    The slots that are selected can be selected multiple times, though it must have
+    the number of resources to support being selected for that many times. 
+
+    Args:
+      phase (string): The phase this is occuring in
+      resourceTypes(list): A list of resources that need to be chosen
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      list: the list of slot resources to be chosen
+    """
+
+    return None
+
+  def selectOpenResourceSlots(self, phase, resourceType=None, actionPerformed=None):
+    """Given the current phase and the action taken by the main player, selects resource slots
+
+    All resource slots chosen must have less than 3 resources in them. Returns None
+    if this action is not possible. Can select a slot multiple times, it can be added as 
+    long as selecting it multiple times would not cause the slot to have 3 resources. If 
+    resourceType array is None, you select any single OpenResource
+
+    Args:
+      phase (string): The phase this is occuring in
+      resourceTypes(list): A list of resources that need to be chosen
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      list: the list of slot resources to be chosen
+    """
+
+    return None
+
+  def selectHaveResourceSlot(self, phase, resourceType=None, actionPerformed=None):
+    """Given the current phase and the action taken by the main player, selects resource slots
+
+    All resource slots chosen must have more than 0 resources in them. Returns None
+    if this action is not possible. Can select the same slot multiple times, as long as 
+    selecting a slot multiple times would not reduce a slot to 0 resources. If no resource
+    type array is given, then select any Have resource slot. 
+
+    Args:
+      phase (string): The phase this is occuring in
+      resourceTypes(list): A list of resources that need to be chosen
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      list: the list of slot resources to be chosen
+    """
+
+    return None
+
+  def selectOpenRoadSlot(self, phase, actionPerformed=None):
+    """Selects a valid slot to build a road
+
+    Args:
+      phase (string): The phase this is occuring in
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      RoadSlot: the road slot that is empty, None if there is none
+    """
+
+    return None
+
+  def selectOpenSettlementSlot(self, phase, actionPerformed=None):
+    """Selects a valid slot to build a settlement
+
+    Args:
+      phase (string): The phase this is occuring in
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      TownSlot: the town slot that is empty, None if there is none
+    """
+    return None
+
+  def selectSettlementSlot(self, phase, actionPerformed=None):
+    """Selects a valid slot to build a city
+
+    Args:
+      phase (string): The phase this is occuring in
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      TownSlot: the town slot that has a settlement, None if there is none
+    """
+
+    return None
+
+  def selectCard(self, phase, deck, actionPerformed=None):
+    """Selects a valid slot to build a city
+
+    Args:
+      phase (string): The phase this is occuring in
+      deck (list): The list of strings where one is to be chosen
+      actionPerformed (string): The action that the main player (if present) took
+
+    Returns:
+      string: the card from the deck that is intended to be selected. 
+    """
+
+    return None
+
 
 class RandomPlayer(Player):
   def __init__(self, board, princ):
     super().__init__(board, princ)
     
+  #Just returns one of the valid actions
+  def getAction(self, phase, actionPerformed=None):
 
-  def getAction(self, actString, validActions):
-    #pdb.set_trace()
-    #We want to get all valid actions if we can take an action
-    actions = [i for i in list(validActions.keys()) if i != Tags.TURNEND and i != Tags.DONOTHING]
+    validActions = self.board.getValidActions(self.princ)
 
-    actionToTake = None
-    if len(actions) == 0:
-      #Check if both have occured
-      if len(validActions.keys()) > 1:
-        raise Exception("Should not have these together {0}".format(validActions.keys()))
-      else:
-        actionToTake = list(validActions.keys())[0]
+    if len(validActions) == 0:
+      return None
+
+    return random.choice(validActions)
+
+  #Selects a player from a list of players to return given the phase
+  def selectPlayer(self, phase, actionPerformed=None):
+    return random.choice(self.getOtherPlayers())
+
+  #Given a list of resources and the phase, we return a processed
+  #list of resources
+  def selectResourceSlots(self, phase, resList, actionPerformed=None):
+    #First we get the various combinations
+    combinations = self.princ.getResourceCombos(resList)
+
+    if len(combinations) == 0:
+      return None
+
+    return random.choice(combinations)
+
+
+  #Selects a resource Slot that has less than 3 resources
+  def selectOpenResourceSlot(self, phase, resourceType=None, actionPerformed=None):
+    retraw = None
+    if resourceType != None:
+      retraw = [i for i in self.princ.getResourceSlotsOf(resourceType) if i.item.amount < 3]
     else:
-      actionToTake = random.choice(list(actions))
+      retraw = [i for i in self.princ.getResourceSlots() if i.item.amount < 3]
 
-    # self.actionsTaken.append(actionToTake)
+    if len(retraw)  == 0:
+      return None
+    return random.choice(retraw)
 
-    if len(validActions[actionToTake]) == 0:
-      return [actionToTake, []]
+  #Selects a resource Slot that has more than 0 resources
+  def selectHaveResourceSlot(self, phase, resourceType=None, actionPerformed=None):
+    retraw = None
+    if resourceType != None:
+      retraw = [i for i in self.princ.getResourceSlotsOf(resourceType) if i.item.amount > 0]
+    else:
+      retraw = [i for i in self.princ.getResourceSlots() if i.item.amount > 0]
 
-    slot = random.choice(validActions[actionToTake][0])
-    resources = random.choice(validActions[actionToTake][1])
+    if len(retraw)  == 0:
+      return None
+    return random.choice(retraw)
 
-    return [actionToTake, slot, resources]
+  #Selects an open road Slot
+  def selectOpenRoadSlot(self, phase, actionPerformed=None):
+    slots = self.princ.getPhantomRoadSlots()
+
+    if len(slots) == 0:
+      return None
+    return random.choice(slots)
+
+  #Selects an open settlement Slot
+  def selectOpenSettlementSlot(self, phase, actionPerformed=None):
+    slots = self.princ.getPhantomTownSlots()
+
+    if len(slots) == 0:
+      return None
+    return random.choice(slots)
+
+  #Selects a settlement Slot
+  def selectSettlementSlot(self, phase, actionPerformed=None):
+    slots = self.princ.getSettlementSlots()
+      
+    if len(slots) == 0:
+      return None
+    return random.choice(slots)
+
+  #Selects a card from a "deck" 
+  def selectCard(self, phase, deck, actionPerformed=None):
+    return random.choice(deck)
 
 class Board:
-  def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions):
+  """A board contains the methods needed to run a game
+
+  Start a game by initializing the board, and then by calling playGame
+  """
+  def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn):
     self.decks = decks
     self.resourceCards = resourceCards
     self.numberofPiles = numberofPiles
 
     self.principalities = principalities
-
-    self.actions = actions
 
     self.knightToken = Tags.KTOKEN
     self.commerceToken = Tags.CTOKEN
@@ -85,25 +272,79 @@ class Board:
 
     self.winner = None
 
-    # self.actionsTaken = []
+    self.numRoads = 9
+    self.numTowns = 5
+    self.numCities = 7
+
+    self.actionsTaken = []
     
+  ###############
+  # Can Perform #
+  ###############
+  #
+  #This block is dedicated to functions that check if actions can be performed
+
+  #Checks if a player can trade
+  def canTradeResource(self, princ, resource):
+    rescNeeded = self.getTradeRate(resource)
+
+    resourceList = [0 for _ in range(Tags.NUMRESOURCES)]
+    resourceList[resource] = rescNeeded
+    if princ.checkPlayer.selectResourceSlots(None, resourceList) != None:
+      princ.checkPlayer.selectHaveResourceSlot(None, resource)
+
 
   #Checks if a road can be built
   def canBuildRoad(self, princ):
-    return len(princ.getPhantomRoadSlots()) != 0
+    return len(princ.getPhantomRoadSlots()) != 0 and \
+      princ.checkPlayer.selectResourceSlots(None, Tags.BUILDROADCOST)\
+       and self.numRoads > 0
+
 
   #Checks if a settlement can be built
   def canBuildSettlement(self, princ):
-    return len(princ.getPhantomTownSlots()) != 0
+    return len(princ.getPhantomTownSlots()) != 0 and \
+      princ.checkPlayer.selectResourceSlots(None, Tags.BUILDSETTLEMENTCOST)\
+       and self.numTowns > 0
 
   #Checks if a settlement can be built
   def canBuildCity(self, princ):
-    return len(princ.getSettlementSlots()) != 0
-    
+    return len(princ.getSettlementSlots()) != 0 and \
+      princ.checkPlayer.selectResourceSlots(None, Tags.BUILDCITYCOST)\
+       and self.numCities > 0
+
+  #Gets all the valid actions for a principality
+  def getValidActions(self, princ):
+    validActions = []
+
+    if princ.player == self.getCurrentPlayer():
+      #We check to see if we have the resources for building
+      if self.canBuildRoad(princ):
+        validActions.append(Tags.BUILDROAD)
+      if self.canBuildSettlement(princ):
+        validActions.append(Tags.BUILDSETTLEMENT)
+      if self.canBuildCity(princ):
+        validActions.append(Tags.BUILDCITY)
+
+      #We check if we can trade
+      for rescNum in range(Tags.NUMRESOURCES):
+        if self.canTradeResource(princ, rescNum) == True:
+          validActions.append(Tags.TRADETYPES[rescNum])
+
+
+    return validActions
+
+  ###########
+  # Perform #
+  ###########
+  #
+  #This block is dedicated to functions that perform various actions
+
   #Builds a road at the desired location
   def buildRoad(self, princ, roadSlot):
     road = Road(princ)
     roadSlot.setItem(road)
+    self.numRoads -= 1
 
   #Builds a settlement at the desired location
   def buildSettlement(self, princ, townSlot):
@@ -123,213 +364,126 @@ class Board:
 
     townSlot.setItem(town)
 
+    self.numTowns -= 1
+
   #Builds a city at the desired location
   def buildCity(self, princ, townSlot):
     townSlot.item.upgradeSettlement()
+    self.numCities -= 1
 
   #Builds an expantion at the desired location
   def buildExpansion(self, princ, expansion, expansionSlot):
     expansionSlot.setItem(expansion)
 
-  
-  #Checks if some action is in valid actions
-  def canPerformAction(self, princ, validActions, actionType, info):
-    #Check for the type of action
+  def perform(self, actionToTake, playerResponses):
+    """This function sends players info given their responses
 
-    #Check if it's a build type action 
-    if actionType == Tags.BUILDCITY or actionType == Tags.BUILDROAD or actionType == Tags.BUILDSETTLEMENT:
-      #Info now should be a list 
-      if actionType in validActions:
-        #This should get us a list 
-        if info[0] in validActions[actionType][0]:
-          if info[0] in validActions[actionType][1]:
-            return True
+    TODO: Impliment actions
+
+    Given the actions and player responses, all steps and responses
+    are sent to the player and carried out. The usual steps are given an action
+
+    Ask for resources from the player
+    Get the respective slots from the player, then create the thing
+    Spend the resources
+
+    Args:
+        actionToTake (string): The action the currrent player seeks to perform
+        playerResponses (List): The list in order of priority of player's responses to the action
+
+    """
+
+    self.actionsTaken.append(actionToTake)
+
+    currentPlayer = self.getCurrentPlayer()
+    #For now we ignore the player responses
+
+    if actionToTake == Tags.BUILDROAD:
+      resourcesToGive = currentPlayer.selectResourceSlots(Tags.BUILDROAD, Tags.BUILDROADCOST)
+      slotToBuild = currentPlayer.selectOpenRoadSlot(Tags.BUILDROAD)
+      self.buildRoad(currentPlayer.princ, slotToBuild)
+      currentPlayer.princ.spendResources(resourcesToGive)
+
+    elif actionToTake == Tags.BUILDSETTLEMENT:
+      resourcesToGive = currentPlayer.selectResourceSlots(Tags.BUILDSETTLEMENT, Tags.BUILDSETTLEMENTCOST)
+      slotToBuild = currentPlayer.selectOpenSettlementSlot(Tags.BUILDSETTLEMENT)
+      self.buildSettlement(currentPlayer.princ, slotToBuild)
+      currentPlayer.princ.spendResources(resourcesToGive)
+
+    elif actionToTake == Tags.BUILDCITY:
+      resourcesToGive = currentPlayer.selectResourceSlots(Tags.BUILDCITY, Tags.BUILDCITYCOST)
+      slotToBuild = currentPlayer.selectSettlementSlot(Tags.BUILDCITY)
+      self.buildCity(currentPlayer.princ, slotToBuild)
+      currentPlayer.princ.spendResources(resourcesToGive)
+
+    elif actionToTake in Tags.TRADETYPES:
+      tradeamount = [0 for _ in Tags.NUMRESOURCES]
+      tradeamount[actionToTake] = self.getTradeRate(currentPlayer.princ, Tags.RESCOURCELIST[actionToTake])
+      resourcesToTrade = currentPlayer.selectResourceSlots(actionToTake, tradeamount)
+      currentPlayer.princ.spendResources(resourcesToTade)
+      slotToRecieve = currentPlayer.selectOpenResourceSlot(curentPlayer.princ)
+      currentPlayer.princ.giveResources(slotToRecieve)
+
       
-    if actionType == Tags.TURNEND:
-      return princ.player == princ.board.getCurrentPlayer()
+  
 
-    if actionType == Tags.DONOTHING:
-      return princ.player != princ.board.getCurrentPlayer()
-    
-    return False
-
-  #Performs the action
-  def performAction(self, princ, actionObject):
-    #Action is name, then slot, then resources
-    actionName = actionObject[0]
-
-    # self.actionsTaken[-1].append("Player {0} took {1}".format(player, actionName))
-
-    if actionName == Tags.BUILDROAD or \
-      actionName == Tags.BUILDSETTLEMENT or actionName == Tags.BUILDCITY:
-
-      resources = actionObject[2]
-      buildSlot = actionObject[1]
-      #pdb.set_trace()
-      if actionName == Tags.BUILDROAD:
-        princ.spendResources(resources)
-
-        princ.buildRoad(princ, buildSlot)  
-
-      elif actionName == Tags.BUILDSETTLEMENT:
-        princ.spendResources(resources)
-
-        princ.buildSettlement(princ, buildSlot)
-      elif actionName == Tags.BUILDCITY:
-        princ.spendResources(resources)
-
-        princ.buildCity(princ, buildSlot)
-
-      elif actionName == Tags.TURNEND:
-        return True
-      elif actionName == Tags.DONOTHING:
-        pass
-
-
-
-  #Returns a list of valid actions, and a list of costs and or targets
-  def getValidActions(self, princ):
-    validActions = dict()
-    for action in self.actions:
-      actionName = action[0]
-      cost = action[1] 
-      turnRestriction = action[2]
-
-      #Check to see if the player is able to play any actions
-      #pdb.set_trace()
-      if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
-        combos = princ.getResourceCombos(cost)
-        #If we can pay for the action
-        if len(combos) != 0:
-          #Now we go through the possible actions
-          locations = []
-          if actionName == Tags.BUILDROAD:
-            locations = princ.getPhantomRoadSlots()
-          if actionName == Tags.BUILDSETTLEMENT:
-            locations = princ.getPhantomTownSlots()
-          if actionName == Tags.BUILDCITY:
-            locations = princ.getSettlementSlots()
-
-          #Check if there were any available slots
-          if len(locations) != 0:
-            validActions[actionName] = [locations, combos]
-
-    #Now append our turnend action, or do nothing
-    if turnRestriction == (princ.player == princ.board.getCurrentPlayer()):
-      validActions[Tags.TURNEND] = []
-    else:
-      validActions[Tags.DONOTHING] = []
-    return validActions
-
+  #############
+  # Play Game #
+  #############
+  #
+  #
+  #This block has functions for playing the game
   def playGame(self):
     #First we would want our players to search through the decks, skip for now
     
     #Now we start our mainphase loop
     while True:
-      self.mainPhase()
+      self.takeTurn()
 
-      #We check if there is a winner
       if self.checkWin() == True:
         return self.winner
 
-  def mainPhase(self):
+      self.getNextPlayer()
+
+  def takeTurn(self):
+    #Should be implimented
+    self.rollActionDice()
+
+    #Should also be implimented, not implimented completely
     self.rollProductionDice()
 
-    #Now we give each player a chance to take their turn.
-    end = False
-    while end != True:
-      end = self.turnPhase()
-    #Now we are done, we give the turn to the next player
-    self.getNextPlayer()
+    #We now get to the player's main phase
+    self.mainPhase()
 
-  def turnPhase(self):
-    for player in self.getPriorityOrder():
-      #pdb.set_trace()
-      playerAction = player.getAction(Tags.MAINPHASE, self.getValidActions(player.princ))
-      
-      #Action is name, then slot, then resources
-      actionName = playerAction[0]
-
-      # self.actionsTaken[-1].append("Player {0} took {1}".format(player, actionName))
-
-      if actionName == Tags.BUILDROAD or \
-        actionName == Tags.BUILDSETTLEMENT or actionName == Tags.BUILDCITY:
-
-        resources = playerAction[2]
-        buildSlot = playerAction[1]
-        #pdb.set_trace()
-        if actionName == Tags.BUILDROAD:
-          player.princ.spendResources(resources)
-
-          self.buildRoad(player.princ, buildSlot)  
-
-        elif actionName == Tags.BUILDSETTLEMENT:
-          player.princ.spendResources(resources)
-
-          self.buildSettlement(player.princ, buildSlot)
-        elif actionName == Tags.BUILDCITY:
-          player.princ.spendResources(resources)
-
-          self.buildCity(player.princ, buildSlot)
-
-        self.setWin()
-
-        if self.checkWin():
-          return True
-
-      elif actionName == Tags.TURNEND:
-        return True
-      elif actionName == Tags.DONOTHING:
-        pass
-
-    self.setWin()
-    return False
-
-  def rollProductionDice(self):
-    roll = None
-    if self.nextProductionRoll == None:
-      roll = random.randint(1, 6)
-    else:
-      roll = self.nextProductionRoll
-      self.nextProductionRoll = None
-
-    #Now we go through each player and tag their principalities
-    for princ in self.principalities:
-      for resourceSlot in princ.getResourceSlots():
-        resourceSlot.item.rollResc(roll)
+    #We do anything after the main phase has ended. 
 
 
-  #Only either a year of plenty or "Null", impliment this later
-  # def rollActionDice(self):
-  #   roll = None
-  #   if self.nextActionRoll == None:
-  #     roll = random.randint(1,6)
-  #   else:
-  #     roll = self.nextActionRoll
-  #     self.nextActionRoll = None
+  #The actions as tag strings are given
 
-  #   if roll == 1:
-  #     pass
-  #   else:
-  #     pass
+  def mainPhase(self):
 
-  #Incriments who's turn it is. 
-  def getNextPlayer(self):
-    self.currentTurn += 1
-    if len(self.principalities) == self.currentTurn:
-      self.currentTurn = 0
-  
-  def getCurrentPlayer(self):
-    return self.principalities[self.currentTurn].player
+    #We want to loop through getting actions
+    while True:
+      #We want to get the action of the player 
+      playerAction = self.getCurrentPlayer().getAction(phase=Tags.MAINPHASE)
 
-  #get the order in which the players act, based upon the current turn
-  def getPriorityOrder(self):
-    order = [i.player for i in self.principalities[self.currentTurn:]]
+      #We check if the player action is valid, and isn't None, if it is we continue
+      if playerAction == None:
+        #If it's nothing, we don't need to do anything and can safetly return
+        return
 
-    for princ in self.principalities[:self.currentTurn]:
-      order.append(princ.player)
+      #We will impliment the get player response actions later, for now we just get the player action
+      #playerResponses = getPlayerResponseActions(actionToTake,phase=Tags.MAINPHSE)
+      playerResponses = None
 
-    return order
+      #Now we perform said action
+      self.perform(playerAction, playerResponses)
+
+      #set the winner if there is one
+      self.setWin()
+
+      if self.checkWin() == True:
+        return
 
   #Checks if a player is designated as the winner
   #Returns true if a player has one and sets the winner
@@ -346,17 +500,176 @@ class Board:
         self.winner = player
         break
 
+  #Incriments who's turn it is. 
+  def getNextPlayer(self):
+    self.currentTurn += 1
+    if len(self.principalities) == self.currentTurn:
+      self.currentTurn = 0
+
+  def rollProductionDice(self):
+    roll = None
+    if self.nextProductionRoll == None:
+      roll = random.randint(1, 6)
+    else:
+      roll = self.nextProductionRoll
+      self.nextProductionRoll = None
+
+    #Now we go through each player and tag their principalities
+    for princ in self.principalities:
+      for resourceSlot in princ.getResourceSlots():
+        resourceSlot.item.rollResc(roll)
+
+
+  #Only either a year of plenty or "Null", impliment this later
+  def rollActionDice(self):
+    roll = None
+    if self.nextActionRoll == None:
+      roll = random.randint(1,6)
+    else:
+      roll = self.nextActionRoll
+      self.nextActionRoll = None
+
+    #We will only impliment the tournament roll for now, and impliment the other elements later. 
+    #Tournament Roll
+    #if roll == 1:
+    #  #Check to see who has the highest tournament value. 
+    #  winner = self.getHighestTournament()
+
+    #  if winner != None:
+    #    #We give them the phase to choose a resource from winning
+        
+    #    #Winner then selects slots to win for the tournament
+    #    resourceSlots = winner.selectOpenResourceSlot(Tags.WINTOURNAMENT, Tags.RESOURCELIST)
+
+    #    #Now you want to assign those resources
+    #    for slot in resourceSlots:
+    #      slot.item.giveResc()
+
+    #Commerce Roll
+    #elif roll == 2:
+    #  #Check to see who has the highest commerce value.
+    #  winner = self.getHighestCommerce()
+
+    #  if winner != None:
+    #    victim = winner.selectPlayer(Tags.WINCOMMERCE, self.getOtherPlayers(winner))
+
+        
+
+    #    winSlot = winner.selectOpenResourceSlot(Tags.WINCOMMERCE, victom.getOpenResources())
+    #    #selectResourceSlot(self, phase, resourceTypes)
+
+    #    loseSlot = victim.selectResourceSlot(Tags.LOSECOMMERCE, set(slot.item.resource))
+
+    #Year of Plenty
+    if roll == 4:
+      #Give each player the ability to select a resource
+      for player in self.getPriorityOrder():
+        slot = player.selectOpenResourceSlot(Tags.YEAROFPLENTY)
+
+        if slot != None:
+          slot.item.giveResc()
+
+
+  #Given a function, uses that to get the highest attribute from all the players
+  
+  ################
+  # Misc Methods #
+  ################
+  #
+  #
+  # These methods are general helper functions for the board
+
+  def getTradeRate(self, princ, resource):
+    if resource == Tags.BRICK:
+      return 3
+    if resource == Tags.GOLD:
+      return 3
+    if resource == Tags.ORE:
+      return 3
+    if resource == Tags.WOOD:
+      return 3
+    if resource == Tags.SHEEP:
+      return 3
+    if resource == Tags.WHEAT:
+      return 3
+
+  def getHighest(self, highestThing):
+    """This gets the highest of some value, given that value
+
+    Args:
+      highestThing (string): The attribute we want to get the highest of
+    """
+    highestPlayer = None
+    highestAmount = 0
+    for player in self.getPriorityOrder():
+      amount = player.princ.highestThing()
+      if amount > highestAmount:
+        highestAmount = amount
+        highestPlayer = player
+      elif amount == highestAmount:
+        highestPlayer = None
+
+    return highestPlayer
+        
+  #Returns the player with the highest Tournament Value
+  def getHighestTournament(self):
+    return self.getHighest(Principality.getTourney)
+
+  def getPlayerResponseActions(self, incAction, phaseType):
+    return [i.getAction(incAction, phaseType) for i in self.getPriorityOrder()]
+
+  #Returns the player with the highest Strength value
+  def getHighestStrength(self):
+    return self.getHighest(Principality.getStrength)
+
+  #Returns the player with the highest Commerce Value
+  def getHighestCommerce(self):
+    return self.getHighest(Principality.getCommerce)
+  
+  def getCurrentPlayer(self):
+    return self.principalities[self.currentTurn].player
+
+  def getOtherPlayers(self, currentPlayer):
+    return [i.player for i in self.principalities if i.player != currentPlayer]
+
+  #get the order in which the players act, based upon the current turn
+  def getPriorityOrder(self):
+    order = [i.player for i in self.principalities[self.currentTurn:]]
+
+    for princ in self.principalities[:self.currentTurn]:
+      order.append(princ.player)
+
+    return order
+
+  #Given the resources, we covnert it into a resource Array
+  def processResourceSlots(self, resourceSlots):
+    rescArray = [[] for _ in range(Tags.NUMRESOURCES)]
+    for slot in resourceSlots:
+      for i in range(Tags.NUMRESOURCES):
+        if slot.item.resource == Tags.RESCOURCELIST[i]:
+          rescArray[i].append(slot)
+
+    return rescArray
+
 class Principality:
-  def __init__(self, board, player, resourceList):
+  #Takes in the player, board, the list of starting resources clockwise
+  #Actions is a dictionary of actions, keys as the action, and it's phases
+  def __init__(self, board, player, checkPlayer, resourceList):
 
     self.board = board
     self.townSlots = deque()
     self.tokens = []
     self.handCards = []
     self.player = player
+    self.checkPlayer = checkPlayer
 
     player.princ = self
     player.board = board
+
+    checkPlayer.princ = self
+    checkPlayer.board = board
+
+    
 
     initialRoad = Road(self)
     initialRoadSlot = RoadSlot(self, None, None)
@@ -417,7 +730,6 @@ class Principality:
     #retString += "Actions taken in order were {0}\n\n".format(self.player.actionsTaken)
     return retString
 
-
   def getALLRoadSlots(self):
     roadSlots = []
     for town in self.getTownSlots():
@@ -447,6 +759,45 @@ class Principality:
   def getCitySlots(self):
     return [i for i in self.getTownSlots() if i.item.townType == Tags.CITY]
 
+  def getALLExpansionSlots(self):
+    expansionSlots = []
+    for town in self.getTownSlots():
+      for section in town.getTownExpansionSlots():
+        for slot in section:
+          if slot not in expansionSlots:
+            expansionSlots.append(slot)
+    return expansionSlots
+
+  def getPhantomTownExpansionSlots(self):
+    return [i for i in self.getALLExpansionSlots() if i.item == None]
+
+  def getPhantomCityExpansionSlots(self):
+    return [i for i in self.getALLExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
+
+  def getTownexpansionSlots(self):
+    return [i for i in self.getAllExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.SETTLEMENT]
+
+  def getCityexpansionSlots(self):
+    return [i for i in self.getAllExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.CITY]
+
+  def getResourceSlots(self):
+    rescList = set()
+    for town in self.getTownSlots():
+      for rescSlot in town.getTownResourceSlots():
+        rescList.add(rescSlot)
+    return list(rescList)
+
+  def getResourceSlotsOf(self, rescType):
+    return [i for i in getResourceSlots() if i.item.resource == rescType]
+
+  #This returns a list of all resource slots with resource that's greater than zero 
+  def getHaveResources(self):
+    return set([i.item.resource for i in getResourceSlots() if i.item.amount > 0])
+
+  #This returns a list of all resources that you can actively take on more of
+  def getOpenResources(self):
+    return set([i.item.resource for i in getResourceSlots() if i.item.amount < 0])
+
   #Functions to help where you can build. 
   def getLeftPhantomRoadSlot(self):
     if self.townSlots[0].item == None:
@@ -475,46 +826,30 @@ class Principality:
 
   #Get the strength score of the principality
   def getStrength(self):
-    return 0
+    return sum([i.getStrength() for i in self.getTownexpansionSlots()])
 
   #Gets the tournament score of the principality
   def getTourney(self):
-    return 0
+    return sum([i.getTourney() for i in self.getTownexpansionSlots()])
 
   #Get the commerce of the principality
   def getCommerce(self):
-    return 0
+    return sum([i.getCommerce() for i in self.getTownexpansionSlots()])
 
   def getPoints(self):
-    return len(self.getSettlementSlots()) + (2 * len(self.getCitySlots()))
-
-  def getALLExpansionSlots(self):
-    expansionSlots = []
-    for town in self.getTownSlots():
-      for section in town.getTownExpansionSlots():
-        for slot in section:
-          if slot not in expansionSlots:
-            expansionSlots.append(slot)
-    return expansionSlots
-
-  def getPhantomTownExpansionSlots(self):
-    return [i for i in self.getALLExpansionSlots() if i.item == None]
-
-  def getPhantomCityExpansionSlots(self):
-    return [i for i in self.getALLExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
-
-  def getResourceSlots(self):
-    rescList = set()
-    for town in self.getTownSlots():
-      for rescSlot in town.getTownResourceSlots():
-        rescList.add(rescSlot)
-    return list(rescList)
+    return len(self.getSettlementSlots()) + (3 * len(self.getCitySlots()))
 
   #Given a list of list of resource slots, we spend them
   def spendResources(self, rescList):
     for rescType in rescList:
       for rescSlot in rescType:
         rescSlot.item.spendResc()
+
+  def giveResources(self, rescList):
+    for rescType in rescList:
+      for rescSlot in rescType:
+        rescSlot.item.giveResc()
+
 
   def getResourceCombos(self, resourceList):
      #We first get all of our resource tiles
@@ -602,11 +937,24 @@ class Principality:
 ##############################################################################
 
 class Piece:
-  def __init__(self, princ, conditions=None, slot=None):
+  def __init__(self, princ, phases=None, slot=None):
     self.princ = princ
 
-    self.conditions = conditions
+    self.phases = phases
     self.slot = slot
+
+    self.strengthPoints = 0
+    self.tourneyPoints = 0
+    self.commercePoints = 0
+
+  def getStrength(self):
+    return self.strengthPoints
+
+  def getTourney(self):
+    return self.tourneyPoints
+
+  def getCommerce(self):
+    return self.commercePoints
 
 class Town(Piece):
     def __init__(self, princ, townType, slot=None):
@@ -817,7 +1165,7 @@ class RoadSlot(Slot):
 
   def __repr__(self):
     if self.item == None:
-      return ""
+      return "EmptySlot {0}".format(self.name)
     else:
       return "{1} {0}".format(self.name, self.item)
 
@@ -869,43 +1217,41 @@ class ResourceSlot(Slot):
 #
 #returns the created board
 def initSimpleBoard(player1, player2):
-    decks = []
 
-    rescList1 = [(3,Tags.SHEEP), (6, Tags.GOLD), (5, Tags.BRICK),\
-      (1, Tags.WHEAT), (4, Tags.WOOD), (2, Tags.ORE)]
+  #We have our block where we initiate all of our actions
+  #buildset = Action(Tags.BUILDSETTLEMENT, lambda x, y, z : len(x.getPhantomTownSlots) != 0 \
+  #  and len(x.getResourceCombos(Tags.BUILDSETTLEMENTCOST)) != 0 and y == Tags.MAINPHASE)
 
-    rescList2 = [(5, Tags.WOOD), (2, Tags.WHEAT), (4, Tags.SHEEP),\
-      (6, Tags.BRICK), (1, Tags.GOLD), (3, Tags.ORE)]
+  #buildcit = Action(Tags.BUILDCITY, lambda x, y, z: len(x.getSettlementSlots) != 0 \
+  #  and len(x.getResourceCombos(Tags.BUILDCITYCOST)) != 0 and y == Tags.MAINPHASE)
 
-    resourceCards = [(1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-      (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-        (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-          (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-            (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-              (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                  (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                    (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                      (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                        (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),\
-                          (1, Tags.BRICK), (1, Tags.WOOD), (2, Tags.WHEAT), (2, Tags.ORE),]
+  #buildroad = Action(Tags.BUILDROAD, lambda x, y, z: len(x.getPhantomRoadSlots) != 0 \
+  #  and len(x.getResourceCombos(Tags.BUILDROADCOST)) != 0 and y == Tags.MAINPHASE)
 
-    numberofPiles = 0
+  #action1 = [buildset, buildcit, buildroad]
+  #action2 = [buildset, buildcit, buildroad]
 
-    firstTurn = 0
+  checkPlayer1 = RandomPlayer(None, None)
+  checkPlayer2 = RandomPlayer(None, None)
 
-    actions = Tags.SIMPLEACTIONS
+  decks = []
 
-    #(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions)
-    board = Board(decks, resourceCards, numberofPiles, [None, None], firstTurn, actions)
+  numberofPiles = 0
 
-    princ1 = Principality(board, player1, rescList1)
-    princ2 = Principality(board, player2, rescList2)
+  firstTurn = 0
 
-    board.principalities[0] = princ1
-    board.principalities[1] = princ2
+  actions = Tags.SIMPLEACTIONS
 
-    return board
+  #(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions)
+  board = Board(decks, Tags.EXTRARESOURCES, numberofPiles, [None, None], firstTurn)
+
+  princ1 = Principality(board, player1, checkPlayer1, Tags.DOMAIN1RESOURCES)
+  princ2 = Principality(board, player2, checkPlayer2, Tags.DOMAIN1RESOURCES)
+
+  board.principalities[0] = princ1
+  board.principalities[1] = princ2
+
+  return board
 
 
 #Define the tests here
@@ -952,3 +1298,4 @@ class TestStringMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
