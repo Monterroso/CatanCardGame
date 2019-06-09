@@ -9,19 +9,39 @@ TOURNEY = "Tourney"
 COMMERCE = "Commerce"
 STRENGTH = "Strength"
 
+ROAD = "Road"
+SETTLEMENT = "Settlement"
+CITY =  "City"
+TOWN = "Town"
+
+NUMLAYERS = 5
+TOPCITYLEVEL = 0
+TOPRESOURCELEVEL = 1
+TOWNLEVEL = 2
+BOTTOMRESOURCELEVEL = 3
+BOTTOMCITYLEVEL = 4
+
+NUMCOLUMNS = 17
+CENTERPOST = 8
+
+
 UNIT = "Unit"
 FLEET = "Fleet"
 KNIGHT = "Knight"
-ACTION = "Action"
 DEFENSE = "Defense"
 OFFENSE = "Offense"
 
-SETEXPANSION = "SettlementSlot"
-CITYEXPANSION = "CitySlot"
-ROADSLOT = "RoadSlot"
-SETTLEMENTSLOT = "TownSlot"
-CITYSLOT = "CitySlot"
-UNBUILDABLE = "Unbuildable"
+##############
+# View Modes #
+##############
+
+DEFAULT ="Default"
+POST = "Post"
+DURING = "During"
+
+#############
+# Resources #
+#############
 
 NUMRESOURCES = 6
 RESOURCE = "Resource"
@@ -43,18 +63,6 @@ DOMAIN2RESOURCES = [(5, WOOD), (2, WHEAT), (4, SHEEP),\
 EXTRARESOURCES = [(2, WHEAT), (4, SHEEP), (6, BRICK),\
  (3, WHEAT), (3, GOLD), (6, SHEEP), (1, WOOD), (1, BRICK),\
  (5, ORE), (4, WHEAT), (2, BRICK), (6, WOOD), (4, ORE), (5, SHEEP)]
-
-ROAD = "Road"
-SETTLEMENT = "Settlement"
-CITY =  "City"
-TOWN = "Town"
-
-#UP = "Up"
-#UP2 = "Up2"
-#DOWN = "Down"
-#DOWN2 = "Down2"
-#LEFT = "Left"
-#RIGHT = "Right"
 
 ###########
 # Actions #
@@ -86,13 +94,12 @@ BUILDROADCOST = [0,0,2,1,0,0]
 BUILDSETTLEMENTCOST = [0,0,1,1,1,1]
 BUILDCITYCOST = [0,3,0,0,2,0]
 
-SIMPLEACTIONS = set([BUILDROAD, BUILDSETTLEMENT, BUILDCITY])
-
 ####################################
-# Tags for all possible conditions #
+# Tags for all possible phases #
 ####################################
 
 MAINPHASE = "MainPhase"
+YEAROFPLENTY = "YearofPlenty"
 
 
-#Now we have all of the individual tags for the cards
+#Now we have all of the individual tags for the cards 
