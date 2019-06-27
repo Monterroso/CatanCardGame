@@ -8,6 +8,8 @@ import random
 
 import pdb
 
+import json
+
 #This is a board for python. 
 
 ###################################################################################
@@ -276,13 +278,11 @@ class Board:
     self.numTowns = 5
     self.numCities = 7
 
-    self.actionsTaken = []
+    #StoredInfo is a list of turn infos
+    self.storedInfo = {}
+    self.currentTurnInfo = None
 
-    #Mode is how the game should be monitored
-    #0 = No monitor
-    #1 = means only after game
-    #2 = means 
-    self.mode = mode
+    self.turnNum = 0
     
   ###############
   # Can Perform #
@@ -403,8 +403,6 @@ class Board:
 
     """
 
-    self.actionsTaken.append(actionToTake)
-
     currentPlayer = self.getCurrentPlayer()
     #For now we ignore the player responses
 
@@ -447,13 +445,21 @@ class Board:
     #First we would want our players to search through the decks, skip for now
     
     #Now we start our mainphase loop
-    while True:
+    while self.turnNum < 200:
+      self.currentTurnInfo = {"Actions":[], "Player":self.getCurrentPlayer().name, "Princ":[]}
       self.takeTurn()
+      self.storedInfo[self.turnNum] = self.currentTurnInfo
 
       if self.checkWin() == True:
         return self.winner
 
+      self.turnNum += 1
       self.getNextPlayer()
+
+     
+
+    #In case we hit the turn limit
+    return None
 
   def takeTurn(self):
     #Should be implimented
@@ -477,11 +483,15 @@ class Board:
       #We want to get the action of the player 
       playerAction = self.getCurrentPlayer().getAction(phase=Tags.MAINPHASE)
 
+      self.currentTurnInfo["Actions"].append(playerAction)
+      self.currentTurnInfo["Princ"].append(self.getCurrentPlayer().princ.getInfo())
+
       #We check if the player action is valid, and isn't None, if it is we continue
       if playerAction == None:
         #If it's nothing, we don't need to do anything and can safetly return
         return
-
+      
+      #Add the action to our list of what is happening, won't get to this if action is none
       #We will impliment the get player response actions later, for now we just get the player action
       #playerResponses = getPlayerResponseActions(actionToTake,phase=Tags.MAINPHSE)
       playerResponses = None
@@ -520,6 +530,7 @@ class Board:
     roll = None
     if self.nextProductionRoll == None:
       roll = random.randint(1, 6)
+      self.currentTurnInfo["ProductionRoll"] = roll
     else:
       roll = self.nextProductionRoll
       self.nextProductionRoll = None
@@ -535,6 +546,7 @@ class Board:
     roll = None
     if self.nextActionRoll == None:
       roll = random.randint(1,6)
+      self.currentTurnInfo["ActionRoll"] = roll
     else:
       roll = self.nextActionRoll
       self.nextActionRoll = None
@@ -684,6 +696,11 @@ class Principality:
 
     #For slots we use coordinates, making sure it's properly set. 
     for j in range(Tags.NUMCOLUMNS):
+      #You're always gonna have expansion slot on the top and bottom layers
+      self.coordinates[Tags.TOPCITYLEVEL][j] = \
+          ExpansionSlot(self, (Tags.TOPCITYLEVEL, j))
+      self.coordinates[Tags.BOTTOMCITYLEVEL][j] = \
+          ExpansionSlot(self, (Tags.BOTTOMCITYLEVEL, j))
       #If it's even it's a road slice
       if j % 2 == 0:
         self.coordinates[Tags.TOPRESOURCELEVEL][j] = \
@@ -693,15 +710,14 @@ class Principality:
           ResourceSlot(self, (Tags.BOTTOMRESOURCELEVEL, j))
       #Otherwise it's a settlement slice
       else:
-        self.coordinates[Tags.TOPCITYLEVEL][j] = \
-          ExpansionSlot(self, (Tags.TOPCITYLEVEL, j))
         self.coordinates[Tags.TOPRESOURCELEVEL][j] = \
           ExpansionSlot(self, (Tags.TOPRESOURCELEVEL, j))
         self.coordinates[Tags.TOWNLEVEL][j] = TownSlot(self, (Tags.TOWNLEVEL, j))
         self.coordinates[Tags.BOTTOMRESOURCELEVEL][j] = \
           ExpansionSlot(self, (Tags.BOTTOMRESOURCELEVEL, j))
-        self.coordinates[Tags.BOTTOMCITYLEVEL][j] = \
-          ExpansionSlot(self, (Tags.BOTTOMCITYLEVEL, j))
+        
+
+
 
     #Now our grid that contains everything should have it. 
 
@@ -735,40 +751,35 @@ class Principality:
     retString = ""
     for layer in range(Tags.NUMLAYERS):
       for slot in range(Tags.NUMCOLUMNS):
-        retString += "{0}".format(self.coordinates[layer][slot])
+        retString += " {0} ".format(self.coordinates[layer][slot])
       retString += "\n\n"
-
     return retString
 
-  #def __repr__(self):
-  #  #These are the towns
-  #  towns = self.getTownSlots()
+  def display(self):
+    """Returns info to display the game
 
-  #  firstTown = towns[0]
+    Returns:
+      string: toString of the player who controls the principality
+      int: Number of victory points
+      list: coordinates that represent all of the locations for the principality
+    """
+    return self.player, self.getPoints(), self.coordinates
 
-  #  TL = firstTown.topLeftSlot
-  #  BL = firstTown.bottomLeftSlot
+  def getInfo(self):
+    """Returns the information of the game into a JSON readable format
 
-  #  retString = "{0}          {1}          {2}\n\n".format(BL, firstTown.leftRoadSlot, TL)
+    The information of the dictionary should be enough information to recreate the 
+    principality from scratch. What is added is a list of information. First is all 
+    elements and their information.
 
-  #  for town in towns:
+    Returns:
+      list: The information in a list format
+    """
 
-  #    down1 = town.downSlots[0]
-  #    down2 = town.downSlots[1]
+    #First create list to be the size of coordinates
 
-  #    up1 = town.upSlots[0]
-  #    up2 = town.upSlots[1]
-
-  #    retString += "                 {0}                \n\n".format(town)
-
-  #    TR = town.topRightSlot
-  #    BR = town.bottomRightSlot
-
-  #    retString += "{0}          {1}          {2}\n\n".format(BR, town.rightRoadSlot, TR)
-
-  #  retString += "We have {0} victory points\n\n".format(self.getPoints())
-  #  #retString += "Actions taken in order were {0}\n\n".format(self.player.actionsTaken)
-  #  return retString
+    #Calls the encode which encodes the slot as a dictionary
+    return [[slot.encode() for slot in layer] for layer in self.coordinates]
 
   #Returns all locations where a roadslot can be built
   def getPhantomRoadSlots(self):
@@ -791,7 +802,7 @@ class Principality:
     townSlots = []
     if self.leftMostSlotNumber % 2 == 0 and self.leftMostSlotNumber != 0:
       townSlots.append(self.coordinates[Tags.TOWNLEVEL][self.leftMostSlotNumber - 1])
-    if self.rightMostSlotNumber % 2 == 0 and self.leftMostSlotNumber != Tags.NUMCOLUMNS - 1:
+    if self.rightMostSlotNumber % 2 == 0 and self.rightMostSlotNumber != Tags.NUMCOLUMNS - 1:
       townSlots.append(self.coordinates[Tags.TOWNLEVEL][self.rightMostSlotNumber + 1])
 
     return townSlots
@@ -860,32 +871,6 @@ class Principality:
   #This returns a list of all resources that you can actively take on more of
   def getOpenResources(self):
     return set([i.item.resource for i in self.getResourceSlots() if i.item.amount < 0])
-
-  ##Functions to help where you can build. 
-  #def getLeftPhantomRoadSlot(self):
-  #  if self.townSlots[0].item == None:
-  #    return self.townSlots[0]
-    
-  #  return None  
-
-  #def getRightPhantomRoadSlot(self):
-  #  if self.townSlots[-1].item == None:
-  #    return self.townSlots[-1]
-    
-  #  return None
-
-  #def getLeftPhantomTownSlot(self):
-  #  if self.townSlots[0].item == None:
-  #    return None
-
-  #  return self.townSlots[0].leftRoadSlot
-
-  #def getRightPhantomTownSlot(self):
-  #  if self.townSlots[-1].item == None:
-  #    return None
-
-  #  return self.townSlots[-1].rightRoadSlot
-
 
   #Get the strength score of the principality
   def getStrength(self):
@@ -1103,9 +1088,13 @@ class Slot:
 
   def __repr__(self):
     if self.item == None:
-      return "None"
+      return "N/A"
     else:
       return str(self.item)
+
+  #Returns a dictionary of all elements of this slot
+  def encode(self):
+    pass
 
   def changeLocation(self, location):
     self.location = location
@@ -1127,6 +1116,12 @@ class TownSlot(Slot):
 
     self.name = TownSlot.name
     TownSlot.name += 1
+
+  def encode(self):
+    if self.item == None:
+      return {}
+    return {"Type":self.item.townType}
+
 
   def getTL(self):
     return self.princ.coordinates[Tags.TOPRESOURCELEVEL][self.location[1] - 1]
@@ -1219,6 +1214,11 @@ class RoadSlot(Slot):
     self.name = RoadSlot.name
     RoadSlot.name += 1
 
+  def encode(self):
+    if self.item == None:
+      return {}
+    return {"Type":Tags.ROAD}
+
   def getLeftSettlementSlot(self):
     return princ.coordinates[Tags.TOWNLEVEL][self.location[1] - 1]
 
@@ -1233,6 +1233,11 @@ class ExpansionSlot(Slot):
     self.name = ExpansionSlot.name
     ExpansionSlot.name += 1
 
+  def encode(self):
+    if self.item == None:
+      return {}
+    return {"Type":self.item.name}
+
   def getTownSlot(self):
     return princ.coordinates[Tags.TOWNLEVEL][self.location[1]]
     
@@ -1244,6 +1249,11 @@ class ResourceSlot(Slot):
 
     self.name = ResourceSlot.name
     ResourceSlot.name += 1
+
+  def encode(self):
+    if self.item == None:
+      return {}
+    return {"Type":Tags.RESOURCENAME[self.item.resource], "Amount":self.item.amount, "Number":self.item.number}
 
   def getLeftTownSlot(self):
     return princ.coordinates[Tags.TOWNLEVEL][self.location[1] - 1]
@@ -1261,19 +1271,6 @@ class ResourceSlot(Slot):
 #
 #returns the created board
 def initSimpleBoard(player1, player2):
-
-  #We have our block where we initiate all of our actions
-  #buildset = Action(Tags.BUILDSETTLEMENT, lambda x, y, z : len(x.getPhantomTownSlots) != 0 \
-  #  and len(x.getResourceCombos(Tags.BUILDSETTLEMENTCOST)) != 0 and y == Tags.MAINPHASE)
-
-  #buildcit = Action(Tags.BUILDCITY, lambda x, y, z: len(x.getSettlementSlots) != 0 \
-  #  and len(x.getResourceCombos(Tags.BUILDCITYCOST)) != 0 and y == Tags.MAINPHASE)
-
-  #buildroad = Action(Tags.BUILDROAD, lambda x, y, z: len(x.getPhantomRoadSlots) != 0 \
-  #  and len(x.getResourceCombos(Tags.BUILDROADCOST)) != 0 and y == Tags.MAINPHASE)
-
-  #action1 = [buildset, buildcit, buildroad]
-  #action2 = [buildset, buildcit, buildroad]
 
   checkPlayer1 = RandomPlayer(None, None)
   checkPlayer2 = RandomPlayer(None, None)
@@ -1295,6 +1292,14 @@ def initSimpleBoard(player1, player2):
 
   return board
 
+def playSimpleGame():
+  player1 = RandomPlayer(None, None)
+  player2 = RandomPlayer(None, None)
+  board = initSimpleBoard(player1, player2)    
+  winner = board.playGame()
+
+  #Here we want to write to a JSON file
+  return board.storedInfo
 
 #Define the tests here
 class TestStringMethods(unittest.TestCase):
@@ -1313,33 +1318,10 @@ class TestStringMethods(unittest.TestCase):
     #     totalsNot += 1
 
     # print(totalsNot)
+    info = playSimpleGame()
 
-
-
-    player1 = RandomPlayer(None, None)
-    player2 = RandomPlayer(None, None)
-    board = initSimpleBoard(player1, player2)    
-
-    f = open("princ.txt", "w")
-    f.write(str(board.playGame().princ))
-    f.close()
-
-
-    """
-    def test_upper(self):
-        self.assertEqual('foo'.upper(), 'FOO')
-
-    def test_isupper(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
-
-    def test_split(self):
-        s = 'hello world'
-        self.assertEqual(s.split(), ['hello', 'world'])
-        # check that s.split fails when the separator is not a string
-        with self.assertRaises(TypeError):
-            s.split(2)
-    """
+    with open('templates/test.json', 'w') as outfile:  
+      json.dump(info, outfile)
 
 if __name__ == '__main__':
     unittest.main()

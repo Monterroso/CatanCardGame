@@ -52,6 +52,8 @@ WOOD = 3
 WHEAT = 4
 SHEEP = 5
 
+RESOURCENAME = ["Gold", "Ore", "Brick", "Wood", "Wheat", "Sheep"]
+
 RESCOURCELIST = [GOLD, ORE, BRICK, WOOD, WHEAT, SHEEP]
 
 DOMAIN1RESOURCES = [(3, SHEEP), (6, GOLD), (5, BRICK),\

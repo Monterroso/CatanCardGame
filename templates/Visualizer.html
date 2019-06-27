@@ -1,0 +1,52 @@
+﻿{% extends "Base.html" %}
+{% block content %}
+    <!--<script>
+        function loadJSON(file, callback) {
+
+            var xobj = new XMLHttpRequest();
+            xobj.overrideMimeType("application/json");
+            xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
+            xobj.onreadystatechange = function () {
+                if (xobj.readyState == 4 && xobj.status == "200") {
+                    // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+                    callback(xobj.responseText);
+                }
+            };
+            xobj.send(null);
+        }
+
+
+        function load() {
+
+            loadJSON("/test.txt", function (response) {
+        
+                var actual_JSON = JSON.parse(response);
+                console.log(actual_JSON);
+            });
+        }
+        var a = window.location.pathname;
+
+        load();
+        
+    </script>-->
+
+    <div id="Board">
+        <div id="row0"></div>
+        <div id="row1"></div>
+        <div id="row2"></div>
+        <div id="row3"></div>
+        <div id="row4"></div>
+    </div>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename = "stylesheet.css")}}" type="text/css">
+
+    <script type="text/javascript" src=""></script>
+
+    <button type="button" onclick='createInfo({{ contents| tojson}})'>Click Me!</button>
+
+    
+    {% for item in contents%}
+        <h1>{{contents[item]}}</h1>
+    {% endfor %}
+
+{% endblock content%}
