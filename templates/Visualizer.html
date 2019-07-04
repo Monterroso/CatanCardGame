@@ -1,52 +1,54 @@
 ﻿{% extends "Base.html" %}
 {% block content %}
-    <!--<script>
-        function loadJSON(file, callback) {
+<!--<script>
+    function loadJSON(file, callback) {
 
-            var xobj = new XMLHttpRequest();
-            xobj.overrideMimeType("application/json");
-            xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
-            xobj.onreadystatechange = function () {
-                if (xobj.readyState == 4 && xobj.status == "200") {
-                    // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-                    callback(xobj.responseText);
-                }
-            };
-            xobj.send(null);
-        }
+        var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+        xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
+        xobj.onreadystatechange = function () {
+            if (xobj.readyState == 4 && xobj.status == "200") {
+                // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+                callback(xobj.responseText);
+            }
+        };
+        xobj.send(null);
+    }
 
 
-        function load() {
+    function load() {
 
-            loadJSON("/test.txt", function (response) {
-        
-                var actual_JSON = JSON.parse(response);
-                console.log(actual_JSON);
-            });
-        }
-        var a = window.location.pathname;
+        loadJSON("/test.txt", function (response) {
 
-        load();
-        
-    </script>-->
+            var actual_JSON = JSON.parse(response);
+            console.log(actual_JSON);
+        });
+    }
+    var a = window.location.pathname;
 
-    <div id="Board">
-        <div id="row0"></div>
-        <div id="row1"></div>
-        <div id="row2"></div>
-        <div id="row3"></div>
-        <div id="row4"></div>
-    </div>
+    load();
 
-    <link rel="stylesheet" href="{{ url_for('static', filename = "stylesheet.css")}}" type="text/css">
+</script>-->
+<link rel="stylesheet" href="{{ url_for('static', filename = "stylesheet.css")}}" type="text/css">
 
-    <script type="text/javascript" src=""></script>
+<script type="text/javascript" src="{{ url_for('static', filename = "functions.js")}}"></script>
 
-    <button type="button" onclick='createInfo({{ contents| tojson}})'>Click Me!</button>
+<button type="button" onclick="decrement('0')">Previous Turn</button>
+<button type="button" onclick="increment('0')">Next Turn</button>
 
-    
-    {% for item in contents%}
-        <h1>{{contents[item]}}</h1>
-    {% endfor %}
+<div id="Information">
+    <p id="TurnNum"></p>
+    <p id="ProductionRoll"></p>
+    <p id="ActionRoll"></p>
 
+</div>
+<div id="Board"></div>
+
+<!--<button type="button" onclick='createInfo({{ contents| tojson}})'>Click Me!</button>-->
+<button type="button" onclick='initiateSetup({{ contents| tojson}})'>Click Me!</button>
+
+
+<!--{% for item in contents%}
+<h1>{{contents[item]}}</h1>
+    {% endfor %}-->
 {% endblock content%}

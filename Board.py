@@ -24,7 +24,7 @@ class Player:
 
   """
   name = 0
-  def __init__(self, board, princ):
+  def __init__(self, board: Board, princ: Principality):
     self.name = Player.name
     Player.name += 1
 
@@ -33,10 +33,10 @@ class Player:
     self.princ = princ
 
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return "{0}".format(self.name)
 
-  def getAction(self, phase, actionPerformed=None):
+  def getAction(self, phase: str, actionPerformed=None) -> str:
     """Given the current phase and the action taken by the main player, return the action string
 
     Args:
@@ -49,7 +49,7 @@ class Player:
 
     return None
 
-  def selectPlayer(self, phase, actionPerformed=None):
+  def selectPlayer(self, phase: str, actionPerformed=None) -> Player:
     """Given the current phase and the action taken by the main player, return the chosen player
 
     Args:
@@ -62,7 +62,7 @@ class Player:
 
     return None
 
-  def selectResourceSlots(self, phase, resourceTypes, actionPerformed=None):
+  def selectResourceSlots(self, phase: str, resourceTypes: list, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     The slots that are selected can be selected multiple times, though it must have
@@ -79,7 +79,7 @@ class Player:
 
     return None
 
-  def selectOpenResourceSlots(self, phase, resourceType=None, actionPerformed=None):
+  def selectOpenResourceSlots(self, phase: str, resourceType=None, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     All resource slots chosen must have less than 3 resources in them. Returns None
@@ -98,7 +98,7 @@ class Player:
 
     return None
 
-  def selectHaveResourceSlot(self, phase, resourceType=None, actionPerformed=None):
+  def selectHaveResourceSlot(self, phase: str, resourceType=None, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     All resource slots chosen must have more than 0 resources in them. Returns None
@@ -117,7 +117,7 @@ class Player:
 
     return None
 
-  def selectOpenRoadSlot(self, phase, actionPerformed=None):
+  def selectOpenRoadSlot(self, phase: str, actionPerformed=None) -> RoadSlot:
     """Selects a valid slot to build a road
 
     Args:
@@ -130,7 +130,7 @@ class Player:
 
     return None
 
-  def selectOpenSettlementSlot(self, phase, actionPerformed=None):
+  def selectOpenSettlementSlot(self, phase: str, actionPerformed=None) -> TownSlot:
     """Selects a valid slot to build a settlement
 
     Args:
@@ -142,7 +142,7 @@ class Player:
     """
     return None
 
-  def selectSettlementSlot(self, phase, actionPerformed=None):
+  def selectSettlementSlot(self, phase: str, actionPerformed=None) -> TownSlot:
     """Selects a valid slot to build a city
 
     Args:
@@ -155,7 +155,7 @@ class Player:
 
     return None
 
-  def selectCard(self, phase, deck, actionPerformed=None):
+  def selectCard(self, phase: str, deck: list, actionPerformed=None) -> str:
     """Selects a valid slot to build a city
 
     Args:
@@ -259,7 +259,7 @@ class Board:
   """
   def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn, mode):
     self.decks = decks
-    self.resourceCards = resourceCards
+    self.resourceCards = [i for i in resourceCards]
     self.numberofPiles = numberofPiles
 
     self.principalities = principalities
@@ -483,8 +483,8 @@ class Board:
       #We want to get the action of the player 
       playerAction = self.getCurrentPlayer().getAction(phase=Tags.MAINPHASE)
 
-      self.currentTurnInfo["Actions"].append(playerAction)
-      self.currentTurnInfo["Princ"].append(self.getCurrentPlayer().princ.getInfo())
+      self.currentTurnInfo["Actions"] = playerAction
+      self.currentTurnInfo["Princ"] = self.getCurrentPlayer().princ.getInfo()
 
       #We check if the player action is valid, and isn't None, if it is we continue
       if playerAction == None:
@@ -504,6 +504,8 @@ class Board:
 
       if self.checkWin() == True:
         return
+
+      return
 
   #Checks if a player is designated as the winner
   #Returns true if a player has one and sets the winner
@@ -529,7 +531,7 @@ class Board:
   def rollProductionDice(self):
     roll = None
     if self.nextProductionRoll == None:
-      roll = random.randint(1, 6)
+      roll = random.randint(0, 5)
       self.currentTurnInfo["ProductionRoll"] = roll
     else:
       roll = self.nextProductionRoll
@@ -537,50 +539,50 @@ class Board:
 
     #Now we go through each player and tag their principalities
     for princ in self.principalities:
-      for resourceSlot in princ.getResourceSlots():
-        resourceSlot.item.rollResc(roll)
+      princ.rollResources(roll)
 
 
   #Only either a year of plenty or "Null", impliment this later
   def rollActionDice(self):
     roll = None
     if self.nextActionRoll == None:
-      roll = random.randint(1,6)
+      roll = random.randint(0,5)
       self.currentTurnInfo["ActionRoll"] = roll
     else:
       roll = self.nextActionRoll
       self.nextActionRoll = None
-
-    #We will only impliment the tournament roll for now, and impliment the other elements later. 
+ 
     #Tournament Roll
-    #if roll == 1:
-    #  #Check to see who has the highest tournament value. 
-    #  winner = self.getHighestTournament()
+    if roll == 1:
+      #Check to see who has the highest tournament value. 
+      winner = self.getHighestTournament()
 
-    #  if winner != None:
-    #    #We give them the phase to choose a resource from winning
+      if winner != None:
+        #We give them the phase to choose a resource from winning
         
-    #    #Winner then selects slots to win for the tournament
-    #    resourceSlots = winner.selectOpenResourceSlot(Tags.WINTOURNAMENT, Tags.RESOURCELIST)
+        #Winner then selects slots to win for the tournament
+        resourceSlot = winner.selectOpenResourceSlot(Tags.WINTOURNAMENT, Tags.RESOURCELIST)
 
-    #    #Now you want to assign those resources
-    #    for slot in resourceSlots:
-    #      slot.item.giveResc()
+        #Now you want to assign those resources
+        if resourceSlot != None:
+          resourceSlot.item.giveResc()
 
     #Commerce Roll
-    #elif roll == 2:
-    #  #Check to see who has the highest commerce value.
-    #  winner = self.getHighestCommerce()
+    elif roll == 2:
+      #Check to see who has the highest commerce value.
+      winner = self.getHighestCommerce()
 
-    #  if winner != None:
-    #    victim = winner.selectPlayer(Tags.WINCOMMERCE, self.getOtherPlayers(winner))
+      if winner != None:
+        victim = winner.selectPlayer(Tags.WINCOMMERCE, self.getOtherPlayers(winner))
 
         
 
-    #    winSlot = winner.selectOpenResourceSlot(Tags.WINCOMMERCE, victom.getOpenResources())
-    #    #selectResourceSlot(self, phase, resourceTypes)
+        winSlot = winner.selectOpenResourceSlot(Tags.WINCOMMERCE, victom.getOpenResources())
+        #selectResourceSlot(self, phase, resourceTypes)
 
-    #    loseSlot = victim.selectResourceSlot(Tags.LOSECOMMERCE, set(slot.item.resource))
+        loseSlot = victim.selectResourceSlot(Tags.LOSECOMMERCE, set(slot.item.resource))
+
+
 
     #Year of Plenty
     if roll == 4:
@@ -624,7 +626,7 @@ class Board:
     highestPlayer = None
     highestAmount = 0
     for player in self.getPriorityOrder():
-      amount = player.princ.highestThing()
+      amount = getattr(player.princ, highestThing)()
       if amount > highestAmount:
         highestAmount = amount
         highestPlayer = player
@@ -632,21 +634,21 @@ class Board:
         highestPlayer = None
 
     return highestPlayer
-        
-  #Returns the player with the highest Tournament Value
-  def getHighestTournament(self):
-    return self.getHighest(Principality.getTourney)
 
   def getPlayerResponseActions(self, incAction, phaseType):
     return [i.getAction(incAction, phaseType) for i in self.getPriorityOrder()]
 
+  #Returns the player with the highest Tournament Value
+  def getHighestTournament(self):
+    return self.getHighest("getTourney")
+
   #Returns the player with the highest Strength value
   def getHighestStrength(self):
-    return self.getHighest(Principality.getStrength)
+    return self.getHighest("getStrength")
 
   #Returns the player with the highest Commerce Value
   def getHighestCommerce(self):
-    return self.getHighest(Principality.getCommerce)
+    return self.getHighest("getCommerce")
   
   def getCurrentPlayer(self):
     return self.principalities[self.currentTurn].player
@@ -676,7 +678,7 @@ class Board:
 class Principality:
   #Takes in the player, board, the list of starting resources clockwise
   #Actions is a dictionary of actions, keys as the action, and it's phases
-  def __init__(self, board, player, checkPlayer, resourceList):
+  def __init__(self, board: Board, player: Player, checkPlayer: Player, resourceList: list):
     """This is a player's own personal board
 
     The principality starts out by having the coordinates initiated and the 
@@ -747,7 +749,7 @@ class Principality:
     self.leftMostSlotNumber = Tags.CENTERPOST - 1
     self.rightMostSlotNumber = Tags.CENTERPOST + 1
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     retString = ""
     for layer in range(Tags.NUMLAYERS):
       for slot in range(Tags.NUMCOLUMNS):
@@ -765,7 +767,7 @@ class Principality:
     """
     return self.player, self.getPoints(), self.coordinates
 
-  def getInfo(self):
+  def getInfo(self) -> list:
     """Returns the information of the game into a JSON readable format
 
     The information of the dictionary should be enough information to recreate the 
@@ -782,7 +784,16 @@ class Principality:
     return [[slot.encode() for slot in layer] for layer in self.coordinates]
 
   #Returns all locations where a roadslot can be built
-  def getPhantomRoadSlots(self):
+  def getPhantomRoadSlots(self) -> list:
+    """Returns all open road slots
+
+    Called when you need to get all places where the player could currently
+    build a road
+
+    Returns:
+      list: Slots where a Road can be built
+    """
+
     roadSlots = []
     if self.leftMostSlotNumber % 2 != 0:
       roadSlots.append(self.coordinates[Tags.TOWNLEVEL][self.leftMostSlotNumber - 1])
@@ -791,14 +802,29 @@ class Principality:
 
     return roadSlots
 
-  def getRoadSlots(self):
+  def getRoadSlots(self) -> list:
+    """Returns all the road slots
+
+    Called when you need to get all the slots with roads currently 
+    in the principality
+
+    Returns:
+      list: Slots where a Road is built
+    """
+
     roadSlots = []
     for i in range(self.leftMostSlotNumber, self.rightMostSlotNumber + 1):
       if i % 2 == 0:
         roadSlots.append(self.coordinates[Tags.TOWNLEVEL][i])
     return roadSlots
 
-  def getPhantomTownSlots(self):
+  def getPhantomTownSlots(self) -> list:
+    """Gets all slots where a Town can be built
+
+    Returns:
+      list: Slots where a Town can be built
+    """
+
     townSlots = []
     if self.leftMostSlotNumber % 2 == 0 and self.leftMostSlotNumber != 0:
       townSlots.append(self.coordinates[Tags.TOWNLEVEL][self.leftMostSlotNumber - 1])
@@ -807,45 +833,98 @@ class Principality:
 
     return townSlots
 
-  def getTownSlots(self):
+  def getTownSlots(self) -> list:
+    """Gets all Towns in the Pricnipality
+
+    Returns:
+      list: Slots where a Town is built
+    """
+
     townSlots = []
     for i in range(self.leftMostSlotNumber, self.rightMostSlotNumber + 1):
       if i % 2 != 0:
         townSlots.append(self.coordinates[Tags.TOWNLEVEL][i])
     return townSlots
 
-  def getSettlementSlots(self):
+  def getSettlementSlots(self) -> list:
+    """Gets all Settlements in the Principality
+
+    Returns:
+      list: Slots where a Settlement is built
+    """
+
     return [i for i in self.getTownSlots() if i.item.townType == Tags.SETTLEMENT]
 
-  def getCitySlots(self):
-    return [i for i in self.getTownSlots() if i.item.townType == Tags.CITY]
+  def getCitySlots(self) -> list:
+    """Gets all Cities in the Principality
 
-  def getALLExpansionSlots(self):
+    Returns:
+      list: Slots where a City is built
+    """
+
+    return [i for i in self.getTownSlots() if i.item.townType == Tags.CITY]
+  
+  def getALLExpansionSlots(self) -> list:
+    """Gets all Expansions in the Principality
+
+    Returns:
+      list: Slots of expansion, either built in or empty
+    """
+
     expansionSlots = []
     for i in range(self.leftMostSlotNumber, self.rightMostSlotNumber + 1):
       if i % 2 != 0:
         #Know if we want to add the city slots
         if self.coordinates[Tags.TOWNLEVEL][i].item.townType == Tags.CITY:
           expansionSlots.append(self.coordinates[Tags.TOPCITYLEVEL][i])
-          expansionSlots.append(self.coordinates[Tags.BOTTOMCITYLEVELL][i])
+          expansionSlots.append(self.coordinates[Tags.BOTTOMCITYLEVEL][i])
 
         expansionSlots.append(self.coordinates[Tags.TOPRESOURCELEVEL][i])
-        expansionSlots.append(self.coordinates[Tags.BOTTOMRESOURCELEVELL][i])
+        expansionSlots.append(self.coordinates[Tags.BOTTOMRESOURCELEVEL][i])
     return expansionSlots
 
-  def getPhantomTownExpansionSlots(self):
+  def getPhantomTownExpansionSlots(self) -> list:
+    """Gets all slots where a town expansion can be built
+
+    Returns:
+      list: Slots where town expansions can be built
+    """
+
     return [i for i in self.getALLExpansionSlots() if i.item == None]
 
-  def getPhantomCityExpansionSlots(self):
+  def getPhantomCityExpansionSlots(self) -> list:
+    """Gets all Slots where a city expansion can be built
+
+    Returns:
+      list: Slots where city expansions can be built
+    """
+
     return [i for i in self.getALLExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
 
-  def getTownexpansionSlots(self):
-    return [i for i in self.getAllExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.SETTLEMENT]
+  def getTownexpansionSlots(self) -> list:
+    """Gets all Slots where an expansion has been built in a town
 
-  def getCityexpansionSlots(self):
-    return [i for i in self.getAllExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.CITY]
+    Returns:
+      list: Slots in a town with a built expansion
+    """
 
-  def getResourceSlots(self):
+    return [i for i in self.getALLExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.SETTLEMENT]
+
+  def getCityexpansionSlots(self) -> list:
+    """Gets all Slots where an expansion has been built in a city
+
+    Returns: 
+      list: Slots in a city with a built expansion
+    """
+    return [i for i in self.getALLExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.CITY]
+
+  def getResourceSlots(self) -> list:
+    """Returns an unordered list of all resource slots 
+
+    Returns:
+      list: Slots containing resources
+    """
+
     rescList = []
     for i in range(self.leftMostSlotNumber, self.rightMostSlotNumber + 1):
       if i % 2 == 0:
@@ -861,49 +940,143 @@ class Principality:
 
     return rescList
 
-  def getResourceSlotsOf(self, rescType):
+  def getResourceSlotsOf(self, rescType: int) -> list:
+    """Gets all Slots of a given type of resource
+
+    Returns:
+      list: Slots of given resource
+    """
+
     return [i for i in self.getResourceSlots() if i.item.resource == rescType]
 
   #This returns a list of all resource slots with resource that's greater than zero 
-  def getHaveResources(self):
-    return set([i.item.resource for i in self.getResourceSlots() if i.item.amount > 0])
+  def getHaveResources(self) -> list:
+    """Gets all Slots with resource value greater than 0
+      
+    Returns:
+      list: Slots of resource greater than 0
+    """
+
+    return [i.item.resource for i in self.getResourceSlots() if i.item.amount > 0]
 
   #This returns a list of all resources that you can actively take on more of
-  def getOpenResources(self):
-    return set([i.item.resource for i in self.getResourceSlots() if i.item.amount < 0])
+  def getOpenResources(self) -> list:
+    """Gets all Slots with resource value less than 3
+      
+    Returns:
+      list: Slots of resource less than 3
+    """
+
+    return [i.item.resource for i in self.getResourceSlots() if i.item.amount < 3]
 
   #Get the strength score of the principality
-  def getStrength(self):
+  def getStrength(self) -> int:
+    """Gets the strength value of the principality
+
+    Returns:
+      int: strength value of the principality
+    """
+
     return sum([i.getStrength() for i in self.getTownexpansionSlots()])
 
   #Gets the tournament score of the principality
-  def getTourney(self):
+  def getTourney(self) -> int:
+    """Gets the tournament value of the principalicty
+
+    Returns:
+      int: tournament value of the principality
+    """
+
     return sum([i.getTourney() for i in self.getTownexpansionSlots()])
 
   #Get the commerce of the principality
-  def getCommerce(self):
+  def getCommerce(self) -> int:
+    """Gets the commerce value of the principality
+
+    Returns:
+      int: commerve value of the principality
+    """
+
     return sum([i.getCommerce() for i in self.getTownexpansionSlots()])
 
-  def getPoints(self):
+  def getPoints(self) -> int:
+    """Gets the victory point value of the principality
+
+    Returns:
+      int: victory point value of the principality
+    """
+
     return len(self.getSettlementSlots()) + (3 * len(self.getCitySlots()))
 
   #Given a list of list of resource slots, we spend them
-  def spendResources(self, rescList):
+  def spendResources(self, rescList: list):
+    """Spends the resource from the resource List
+
+    Given a set of resource slots, it goes through each slot
+    and spends the resource according to the resources
+    spend function
+
+    Args:
+      rescList (list): list of lists with organized slot format
+    """
+
     for rescType in rescList:
       for rescSlot in rescType:
         rescSlot.item.spendResc()
 
-  def giveResources(self, rescList):
+  def giveResources(self, rescList: list):
+    """Gives the resources to the slots in the resource list
+
+    Given a set of resource slots, it goes through each slot
+    and gives the resource according to the resources
+    give function
+
+    Args:
+      rescList (list): list of lists with organized slot format
+    """
+
     for rescType in rescList:
       for rescSlot in rescType:
         rescSlot.item.giveResc()
 
+  def rollResources(self, roll: int):
+    """Dictates what should happen when a number is rolled
+
+    Currently just calls rollResc function on all resource slots
+    """
+
+    for resourceSlot in self.getResourceSlots():
+      resourceSlot.item.rollResc(roll)
+
   #Converts info an a resource blueprint into a resource
-  def convertResource(self, info):
+  def convertResource(self, info: tuple) -> Resource:
+    """Converts a blueprint into a resource
+
+    A blueprint is a tuple containing the number and the type, 
+    converts it into a resource object
+
+    Args:
+      info (tuple): info to make a resource
+
+    Returns:
+      Resource: the created resource
+    """
+
     return Resource(self, info[0], 0, info[1])
 
 
-  def getResourceCombos(self, resourceList):
+  def getResourceCombos(self, resourceList: list) -> list:
+    """Gets the combos of resources list
+
+    Given values of resources, we return the combos of those resources
+
+    Args:
+      resourceList (list): list of ints signialing how much of each
+        resource that we need
+
+    Returns:
+      list: List of all combination
+    """
     #We first get all of our resource tiles
     resourceSlots = self.getResourceSlots()
 
@@ -990,7 +1163,7 @@ class Principality:
 ##############################################################################
 
 class Piece:
-  def __init__(self, princ, phases=None, slot=None):
+  def __init__(self, princ: Principality, phases=None, slot=None):
     self.princ = princ
 
     self.phases = phases
@@ -1000,13 +1173,31 @@ class Piece:
     self.tourneyPoints = 0
     self.commercePoints = 0
 
-  def getStrength(self):
+  def getStrength(self) -> int:
+    """Gets the tourney points of this piece
+
+    Returns:
+      int: strength value of this piece
+    """
+
     return self.strengthPoints
 
-  def getTourney(self):
+  def getTourney(self) -> int:
+    """Gets the tourney points of this piece
+
+    Returns:
+      int: tourney value of this piece
+    """
+
     return self.tourneyPoints
 
-  def getCommerce(self):
+  def getCommerce(self) -> int:
+    """Gets the commerce points of this piece
+
+    Returns:
+      int: commerce value of this piece
+    """
+
     return self.commercePoints
 
 class Town(Piece):

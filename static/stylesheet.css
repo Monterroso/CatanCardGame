@@ -10,3 +10,9 @@ html, body {
 	background-size: cover;
 }
 
+.slot {
+    background-color: #FFF;
+    display: inline-block;
+    width: 80px;
+}
+
