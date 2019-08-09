@@ -7,7 +7,7 @@ for fi in range(1, len(sys.argv)):
     filedata = file.read()
 
   # Replace the target string
-  filedata = re.sub(': [a-zA-Z]*', '', filedata)
+  filedata = re.sub('[a-zA-Z]*', '', filedata)
   print(filedata)
 
   # Write the file out again

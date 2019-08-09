@@ -28,7 +28,7 @@ class Player:
 
   """
   name = 0
-  def __init__(self, board: Board, princ: Principality):
+  def __init__(self, board, princ):
     self.name = Player.name
     Player.name += 1
 
@@ -40,50 +40,50 @@ class Player:
   def __repr__(self) -> str:
     return "{0}".format(self.name)
 
-  def getAction(self, phase: str, actionPerformed=None) -> str:
+  def getAction(self, phase, actionPerformed=None) -> str:
     """Given the current phase and the action taken by the main player, return the action string
 
     Args:
-      phase (string): The phase this is occuring in
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      string: The action this player chooses to perform, none if can't or chooses not to
+      string action this player chooses to perform, none if can't or chooses not to
     """
 
     return None
 
-  def selectPlayer(self, phase: str, actionPerformed=None) -> Player:
+  def selectPlayer(self, phase, actionPerformed=None) -> Player:
     """Given the current phase and the action taken by the main player, return the chosen player
 
     Args:
-      phase (string): The phase this is occuring in
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      player: The player who should be chosen, or none if not possible
+      player player who should be chosen, or none if not possible
     """
 
     return None
 
-  def selectResourceSlots(self, phase: str, resourceTypes: list, actionPerformed=None) -> list:
+  def selectResourceSlots(self, phase, resourceTypes, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     The slots that are selected can be selected multiple times, though it must have
     the number of resources to support being selected for that many times. 
 
     Args:
-      phase (string): The phase this is occuring in
-      resourceTypes(list): A list of resources that need to be chosen
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      resourceTypes(list) list of resources that need to be chosen
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      list: the list of slot resources to be chosen
+      list list of slot resources to be chosen
     """
 
     return None
 
-  def selectOpenResourceSlots(self, phase: str, resourceType=None, actionPerformed=None) -> list:
+  def selectOpenResourceSlots(self, phase, resourceType=None, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     All resource slots chosen must have less than 3 resources in them. Returns None
@@ -92,17 +92,17 @@ class Player:
     resourceType array is None, you select any single OpenResource
 
     Args:
-      phase (string): The phase this is occuring in
-      resourceTypes(list): A list of resources that need to be chosen
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      resourceTypes(list) list of resources that need to be chosen
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      list: the list of slot resources to be chosen
+      list list of slot resources to be chosen
     """
 
     return None
 
-  def selectHaveResourceSlot(self, phase: str, resourceType=None, actionPerformed=None) -> list:
+  def selectHaveResourceSlot(self, phase, resourceType=None, actionPerformed=None) -> list:
     """Given the current phase and the action taken by the main player, selects resource slots
 
     All resource slots chosen must have more than 0 resources in them. Returns None
@@ -111,64 +111,64 @@ class Player:
     type array is given, then select any Have resource slot. 
 
     Args:
-      phase (string): The phase this is occuring in
-      resourceTypes(list): A list of resources that need to be chosen
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      resourceTypes(list) list of resources that need to be chosen
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      list: the list of slot resources to be chosen
+      list list of slot resources to be chosen
     """
 
     return None
 
-  def selectOpenRoadSlot(self, phase: str, actionPerformed=None) -> RoadSlot:
+  def selectOpenRoadSlot(self, phase, actionPerformed=None) -> RoadSlot:
     """Selects a valid slot to build a road
 
     Args:
-      phase (string): The phase this is occuring in
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      RoadSlot: the road slot that is empty, None if there is none
+      RoadSlot road slot that is empty, None if there is none
     """
 
     return None
 
-  def selectOpenSettlementSlot(self, phase: str, actionPerformed=None) -> TownSlot:
+  def selectOpenSettlementSlot(self, phase, actionPerformed=None) -> TownSlot:
     """Selects a valid slot to build a settlement
 
     Args:
-      phase (string): The phase this is occuring in
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      TownSlot: the town slot that is empty, None if there is none
+      TownSlot town slot that is empty, None if there is none
     """
     return None
 
-  def selectSettlementSlot(self, phase: str, actionPerformed=None) -> TownSlot:
+  def selectSettlementSlot(self, phase, actionPerformed=None) -> TownSlot:
     """Selects a valid slot to build a city
 
     Args:
-      phase (string): The phase this is occuring in
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      TownSlot: the town slot that has a settlement, None if there is none
+      TownSlot town slot that has a settlement, None if there is none
     """
 
     return None
 
-  def selectCard(self, phase: str, deck: list, actionPerformed=None) -> str:
+  def selectCard(self, phase, deck, actionPerformed=None) -> str:
     """Selects a valid slot to build a city
 
     Args:
-      phase (string): The phase this is occuring in
-      deck (list): The list of strings where one is to be chosen
-      actionPerformed (string): The action that the main player (if present) took
+      phase (string) phase this is occuring in
+      deck (list) list of strings where one is to be chosen
+      actionPerformed (string) action that the main player (if present) took
 
     Returns:
-      string: the card from the deck that is intended to be selected. 
+      string card from the deck that is intended to be selected. 
     """
 
     return None

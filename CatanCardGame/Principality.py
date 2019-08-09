@@ -18,17 +18,17 @@ from Piece import Piece, Town, Road, Expansion, Resource
 class Principality:
   #Takes in the player, board, the list of starting resources clockwise
   #Actions is a dictionary of actions, keys as the action, and it's phases
-  def __init__(self, board: Board, player: Player, checkPlayer: Player, resourceList: list):
+  def __init__(self, board, player, checkPlayer, resourceList):
     """This is a player's own personal board
 
     The principality starts out by having the coordinates initiated and the 
     empty slots placed in the correct places. 
 
     Args:
-      board (Board): The board that contains the game
-      player (Player): The Player agent that makes decisions
-      checkPlayer (Player): An agent that is able to determine what actions are possible
-      resourceList (list): A list of resources
+      board (Board) board that contains the game
+      player (Player) Player agent that makes decisions
+      checkPlayer (Player) agent that is able to determine what actions are possible
+      resourceList (list) list of resources
     """
 
     self.board = board
@@ -101,9 +101,9 @@ class Principality:
     """Returns info to display the game
 
     Returns:
-      string: toString of the player who controls the principality
-      int: Number of victory points
-      list: coordinates that represent all of the locations for the principality
+      string of the player who controls the principality
+      int of victory points
+      list that represent all of the locations for the principality
     """
     return self.player, self.getPoints(), self.coordinates
 
@@ -115,7 +115,7 @@ class Principality:
     elements and their information.
 
     Returns:
-      list: The information in a list format
+      list information in a list format
     """
 
     #First create list to be the size of coordinates
@@ -131,7 +131,7 @@ class Principality:
     build a road
 
     Returns:
-      list: Slots where a Road can be built
+      list where a Road can be built
     """
 
     roadSlots = []
@@ -149,7 +149,7 @@ class Principality:
     in the principality
 
     Returns:
-      list: Slots where a Road is built
+      list where a Road is built
     """
 
     roadSlots = []
@@ -162,7 +162,7 @@ class Principality:
     """Gets all slots where a Town can be built
 
     Returns:
-      list: Slots where a Town can be built
+      list where a Town can be built
     """
 
     townSlots = []
@@ -177,7 +177,7 @@ class Principality:
     """Gets all Towns in the Pricnipality
 
     Returns:
-      list: Slots where a Town is built
+      list where a Town is built
     """
 
     townSlots = []
@@ -190,7 +190,7 @@ class Principality:
     """Gets all Settlements in the Principality
 
     Returns:
-      list: Slots where a Settlement is built
+      list where a Settlement is built
     """
 
     return [i for i in self.getTownSlots() if i.item.townType == Tags.SETTLEMENT]
@@ -199,7 +199,7 @@ class Principality:
     """Gets all Cities in the Principality
 
     Returns:
-      list: Slots where a City is built
+      list where a City is built
     """
 
     return [i for i in self.getTownSlots() if i.item.townType == Tags.CITY]
@@ -208,7 +208,7 @@ class Principality:
     """Gets all Expansions in the Principality
 
     Returns:
-      list: Slots of expansion, either built in or empty
+      list of expansion, either built in or empty
     """
 
     expansionSlots = []
@@ -227,7 +227,7 @@ class Principality:
     """Gets all slots where a town expansion can be built
 
     Returns:
-      list: Slots where town expansions can be built
+      list where town expansions can be built
     """
 
     return [i for i in self.getALLExpansionSlots() if i.item == None]
@@ -236,7 +236,7 @@ class Principality:
     """Gets all Slots where a city expansion can be built
 
     Returns:
-      list: Slots where city expansions can be built
+      list where city expansions can be built
     """
 
     return [i for i in self.getALLExpansionSlots() if i.item == None and i.townSlot.item.townType == Tags.CITY]
@@ -245,7 +245,7 @@ class Principality:
     """Gets all Slots where an expansion has been built in a town
 
     Returns:
-      list: Slots in a town with a built expansion
+      list in a town with a built expansion
     """
 
     return [i for i in self.getALLExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.SETTLEMENT]
@@ -253,8 +253,8 @@ class Principality:
   def getCityexpansionSlots(self) -> list:
     """Gets all Slots where an expansion has been built in a city
 
-    Returns: 
-      list: Slots in a city with a built expansion
+    Returns
+      list in a city with a built expansion
     """
     return [i for i in self.getALLExpansionSlots() if i.item != None and i.townSlot.item.townType == Tags.CITY]
 
@@ -262,7 +262,7 @@ class Principality:
     """Returns an unordered list of all resource slots 
 
     Returns:
-      list: Slots containing resources
+      list containing resources
     """
 
     rescList = []
@@ -280,11 +280,11 @@ class Principality:
 
     return rescList
 
-  def getResourceSlotsOf(self, rescType: int) -> list:
+  def getResourceSlotsOf(self, rescType) -> list:
     """Gets all Slots of a given type of resource
 
     Returns:
-      list: Slots of given resource
+      list of given resource
     """
 
     return [i for i in self.getResourceSlots() if i.item.resource == rescType]
@@ -294,7 +294,7 @@ class Principality:
     """Gets all Slots with resource value greater than 0
       
     Returns:
-      list: Slots of resource greater than 0
+      list of resource greater than 0
     """
 
     return [i.item.resource for i in self.getResourceSlots() if i.item.amount > 0]
@@ -304,7 +304,7 @@ class Principality:
     """Gets all Slots with resource value less than 3
       
     Returns:
-      list: Slots of resource less than 3
+      list of resource less than 3
     """
 
     return [i.item.resource for i in self.getResourceSlots() if i.item.amount < 3]
@@ -314,7 +314,7 @@ class Principality:
     """Gets the strength value of the principality
 
     Returns:
-      int: strength value of the principality
+      int value of the principality
     """
 
     return sum([i.getStrength() for i in self.getTownexpansionSlots()])
@@ -324,7 +324,7 @@ class Principality:
     """Gets the tournament value of the principalicty
 
     Returns:
-      int: tournament value of the principality
+      int value of the principality
     """
 
     return sum([i.getTourney() for i in self.getTownexpansionSlots()])
@@ -334,7 +334,7 @@ class Principality:
     """Gets the commerce value of the principality
 
     Returns:
-      int: commerve value of the principality
+      int value of the principality
     """
 
     return sum([i.getCommerce() for i in self.getTownexpansionSlots()])
@@ -343,13 +343,13 @@ class Principality:
     """Gets the victory point value of the principality
 
     Returns:
-      int: victory point value of the principality
+      int point value of the principality
     """
 
     return len(self.getSettlementSlots()) + (3 * len(self.getCitySlots()))
 
   #Given a list of list of resource slots, we spend them
-  def spendResources(self, rescList: list):
+  def spendResources(self, rescList):
     """Spends the resource from the resource List
 
     Given a set of resource slots, it goes through each slot
@@ -357,14 +357,14 @@ class Principality:
     spend function
 
     Args:
-      rescList (list): list of lists with organized slot format
+      rescList (list) of lists with organized slot format
     """
 
     for rescType in rescList:
       for rescSlot in rescType:
         rescSlot.item.spendResc()
 
-  def giveResources(self, rescList: list):
+  def giveResources(self, rescList):
     """Gives the resources to the slots in the resource list
 
     Given a set of resource slots, it goes through each slot
@@ -372,14 +372,14 @@ class Principality:
     give function
 
     Args:
-      rescList (list): list of lists with organized slot format
+      rescList (list) of lists with organized slot format
     """
 
     for rescType in rescList:
       for rescSlot in rescType:
         rescSlot.item.giveResc()
 
-  def rollResources(self, roll: int):
+  def rollResources(self, roll):
     """Dictates what should happen when a number is rolled
 
     Currently just calls rollResc function on all resource slots
@@ -389,33 +389,33 @@ class Principality:
       resourceSlot.item.rollResc(roll)
 
   #Converts info an a resource blueprint into a resource
-  def convertResource(self, info: tuple) -> Resource:
+  def convertResource(self, info) -> Resource:
     """Converts a blueprint into a resource
 
     A blueprint is a tuple containing the number and the type, 
     converts it into a resource object
 
     Args:
-      info (tuple): info to make a resource
+      info (tuple) to make a resource
 
     Returns:
-      Resource: the created resource
+      Resource created resource
     """
 
     return Resource(self, info[0], 0, info[1])
 
 
-  def getResourceCombos(self, resourceList: list) -> list:
+  def getResourceCombos(self, resourceList) -> list:
     """Gets the combos of resources list
 
     Given values of resources, we return the combos of those resources
 
     Args:
-      resourceList (list): list of ints signialing how much of each
+      resourceList (list) of ints signialing how much of each
         resource that we need
 
     Returns:
-      list: List of all combination
+      list of all combination
     """
     #We first get all of our resource tiles
     resourceSlots = self.getResourceSlots()

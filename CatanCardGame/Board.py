@@ -22,7 +22,7 @@ class Board:
 
   Start a game by initializing the board, and then by calling playGame
   """
-  def __init__(self, decks: list, resourceCards: list, numberofPiles: int, principalities: list, firstTurn: int, mode: int):
+  def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn, mode):
     self.decks = decks
     self.resourceCards = [i for i in resourceCards]
     self.numberofPiles = numberofPiles
@@ -56,18 +56,18 @@ class Board:
   #This block is dedicated to functions that check if actions can be performed
 
   #Checks if a player can trade
-  def canTradeResource(self, princ: Principality, resource: int) -> bool:
+  def canTradeResource(self, princ, resource) -> bool:
     """Checks if the player can trade a specific resource
 
     Given the type of resource, will the player be able
     to instigate a trade with the bank. 
 
     Args:
-      princ (Princiaplity): The principality asking to trade
-      resource (int): The resource we are trying to trade
+      princ (Princiaplity) principality asking to trade
+      resource (int) resource we are trying to trade
 
     Returns:
-      bool: Whether or not the trade can be completed
+      bool or not the trade can be completed
     """
 
     rescNeeded = self.getTradeRate(princ, resource)
@@ -81,14 +81,14 @@ class Board:
 
 
   #Checks if a road can be built
-  def canBuildRoad(self, princ: Principality) -> bool:
+  def canBuildRoad(self, princ) -> bool:
     """Checks if a road can be built by the principality
 
     Args:
-      princ (Pricipality): The principality seeking to check 
+      princ (Pricipality) principality seeking to check 
 
     Returns:
-      bool: Whether or not a road can be built
+      bool or not a road can be built
     """
 
     return len(princ.getPhantomRoadSlots()) != 0 and \
@@ -177,7 +177,7 @@ class Board:
   def perform(self, actionToTake, playerResponses):
     """This function sends players info given their responses
 
-    TODO: Impliment actions
+    TODO actions
 
     Given the actions and player responses, all steps and responses
     are sent to the player and carried out. The usual steps are given an action
@@ -187,8 +187,8 @@ class Board:
     Spend the resources
 
     Args:
-        actionToTake (string): The action the currrent player seeks to perform
-        playerResponses (List): The list in order of priority of player's responses to the action
+        actionToTake (string) action the currrent player seeks to perform
+        playerResponses (List) list in order of priority of player's responses to the action
 
     """
 
@@ -410,7 +410,7 @@ class Board:
     """This gets the highest of some value, given that value
 
     Args:
-      highestThing (string): The attribute we want to get the highest of
+      highestThing (string) attribute we want to get the highest of
     """
     highestPlayer = None
     highestAmount = 0
@@ -522,7 +522,7 @@ class TestStringMethods(unittest.TestCase):
     # print(totalsNot)
     info = playSimpleGame()
 
-    with open('templates/test.json', 'w') as outfile:  
+    with open('templates/test.json', 'w') as outfile 
       json.dump(info, outfile)
 
 if __name__ == '__main__':

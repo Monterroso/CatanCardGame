@@ -109,9 +109,9 @@ class TownSlot(Slot):
     or to the left, by default it goes right if both are free.
 
     Args:
-      princ (Principality): The principality that will be expanding
-      Top (Resource): The resource we want to add to the top slot
-      Bottom (Resource): The resource we want to add to the bottom slot
+      princ (Principality) principality that will be expanding
+      Top (Resource) resource we want to add to the top slot
+      Bottom (Resource) resource we want to add to the bottom slot
     """
 
     #Check the slots of the road which side it is on. 

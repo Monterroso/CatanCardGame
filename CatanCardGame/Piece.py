@@ -11,7 +11,7 @@ import json
 ##############################################################################
 
 class Piece:
-  def __init__(self, princ: Principality, phases=None, slot=None):
+  def __init__(self, princ, phases=None, slot=None):
     self.princ = princ
 
     self.phases = phases
@@ -25,7 +25,7 @@ class Piece:
     """Gets the tourney points of this piece
 
     Returns:
-      int: strength value of this piece
+      int value of this piece
     """
 
     return self.strengthPoints
@@ -34,7 +34,7 @@ class Piece:
     """Gets the tourney points of this piece
 
     Returns:
-      int: tourney value of this piece
+      int value of this piece
     """
 
     return self.tourneyPoints
@@ -43,7 +43,7 @@ class Piece:
     """Gets the commerce points of this piece
 
     Returns:
-      int: commerce value of this piece
+      int value of this piece
     """
 
     return self.commercePoints

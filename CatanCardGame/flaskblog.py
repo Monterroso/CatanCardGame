@@ -10,7 +10,7 @@ def player_game():
   
    #plays the game and creates the file
    info = bd.playSimpleGame()
-   with open('templates/test.json', 'w') as outfile:  
+   with open('templates/test.json', 'w') as outfile 
       json.dump(info, outfile)
 
    with open("templates/test.json", "r") as f:
