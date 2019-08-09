@@ -1,10 +1,15 @@
-# Read in the file
-with open('file.txt', 'r') as file :
-  filedata = file.read()
+import re
+import sys
 
-# Replace the target string
-filedata = filedata.replace('ram', 'abcd')
+for fi in range(1, len(sys.argv)):
+  # Read in the file
+  with open(sys.argv[fi], 'r') as file :
+    filedata = file.read()
 
-# Write the file out again
-with open('file.txt', 'w') as file:
-  file.write(filedata)
+  # Replace the target string
+  filedata = re.sub(': [a-zA-Z]*', '', filedata)
+  print(filedata)
+
+  # Write the file out again
+  with open(sys.argv[fi], 'w') as file:
+    file.write(filedata)
