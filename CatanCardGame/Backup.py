@@ -12,7 +12,7 @@ import pdb
 
 import json
 
-#This is a board for python. 
+#This is a game for python. 
 
 ###################################################################################
 ################################### Game Parts ###################################
@@ -26,11 +26,11 @@ class Player:
 
   """
   name = 0
-  def __init__(self, board, princ):
+  def __init__(self, game, princ):
     self.name = Player.name
     Player.name += 1
 
-    self.board = board
+    self.game = game
 
     self.princ = princ
 
@@ -173,13 +173,13 @@ class Player:
 
 
 class RandomPlayer(Player):
-  def __init__(self, board, princ):
-    super().__init__(board, princ)
+  def __init__(self, game, princ):
+    super().__init__(game, princ)
     
   #Just returns one of the valid actions
   def getAction(self, phase, actionPerformed=None):
 
-    validActions = self.board.getValidActions(self.princ)
+    validActions = self.game.getValidActions(self.princ)
 
     if len(validActions) == 0:
       return None
@@ -254,10 +254,10 @@ class RandomPlayer(Player):
   def selectCard(self, phase, deck, actionPerformed=None):
     return random.choice(deck)
 
-class Board:
-  """A board contains the methods needed to run a game
+class Game:
+  """A game contains the methods needed to run a game
 
-  Start a game by initializing the board, and then by calling playGame
+  Start a game by initializing the game, and then by calling playGame
   """
   def __init__(self, decks, resourceCards, numberofPiles, principalities, firstTurn, mode):
     self.decks = decks
@@ -627,7 +627,7 @@ class Board:
   ################
   #
   #
-  # These methods are general helper functions for the board
+  # These methods are general helper functions for the game
 
   def getTradeRate(self, princ, resource):
     if resource == Tags.BRICK:
@@ -702,22 +702,22 @@ class Board:
     return rescArray
 
 class Principality:
-  #Takes in the player, board, the list of starting resources clockwise
+  #Takes in the player, game, the list of starting resources clockwise
   #Actions is a dictionary of actions, keys as the action, and it's phases
-  def __init__(self, board, player, checkPlayer, resourceList):
-    """This is a player's own personal board
+  def __init__(self, game, player, checkPlayer, resourceList):
+    """This is a player's own personal game
 
     The principality starts out by having the coordinates initiated and the 
     empty slots placed in the correct places. 
 
     Args:
-      board (Board) board that contains the game
+      game (Game) game that contains the game
       player (Player) Player agent that makes decisions
       checkPlayer (Player) agent that is able to determine what actions are possible
       resourceList (list) list of resources
     """
 
-    self.board = board
+    self.game = game
 
     self.coordinates = [[None for _ in range(Tags.NUMCOLUMNS)] for _ in range(Tags.NUMLAYERS)]
 
@@ -755,10 +755,10 @@ class Principality:
     self.checkPlayer = checkPlayer
 
     player.princ = self
-    player.board = board
+    player.game = game
 
     checkPlayer.princ = self
-    checkPlayer.board = board
+    checkPlayer.game = game
 
     #Create initial road
     self.coordinates[Tags.TOWNLEVEL][Tags.CENTERPOST].setItem(Road(self))
@@ -1481,13 +1481,13 @@ class ResourceSlot(Slot):
 
 
 #######################################################################################
-################################### Board Functions ###################################
+################################### Game Functions ###################################
 #######################################################################################
 
-#Creates a standardBoard
+#Creates a standardGame
 #
-#returns the created board
-def initSimpleBoard(player1, player2):
+#returns the created game
+def initSimpleGame(player1, player2):
 
   checkPlayer1 = RandomPlayer(None, None)
   checkPlayer2 = RandomPlayer(None, None)
@@ -1499,39 +1499,39 @@ def initSimpleBoard(player1, player2):
   firstTurn = 0
 
   #(self, decks, resourceCards, numberofPiles, principalities, firstTurn, actions)
-  board = Board(decks, Tags.EXTRARESOURCES, numberofPiles, [None, None], firstTurn, Tags.POST)
+  game = Game(decks, Tags.EXTRARESOURCES, numberofPiles, [None, None], firstTurn, Tags.POST)
 
-  princ1 = Principality(board, player1, checkPlayer1, Tags.DOMAIN1RESOURCES)
-  princ2 = Principality(board, player2, checkPlayer2, Tags.DOMAIN1RESOURCES)
+  princ1 = Principality(game, player1, checkPlayer1, Tags.DOMAIN1RESOURCES)
+  princ2 = Principality(game, player2, checkPlayer2, Tags.DOMAIN1RESOURCES)
 
-  board.principalities[0] = princ1
-  board.principalities[1] = princ2
+  game.principalities[0] = princ1
+  game.principalities[1] = princ2
 
-  return board
+  return game
 
 def playSimpleGame():
   player1 = RandomPlayer(None, None)
   player2 = RandomPlayer(None, None)
-  board = initSimpleBoard(player1, player2)    
-  winner = board.playGame()
+  game = initSimpleGame(player1, player2)    
+  winner = game.playGame()
 
   #Here we want to write to a JSON file
-  return board.storedInfo
+  return game.storedInfo
 
 #Define the tests here
 class TestStringMethods(unittest.TestCase):
 
-  #We're just gonna test out the whole board to find the runtime errors
-  def testBoard(self):
-    #Lets create the board
+  #We're just gonna test out the whole game to find the runtime errors
+  def testGame(self):
+    #Lets create the game
 
     # totalsNot = 0
     # for _ in range(100):
     #   player1 = RandomPlayer(None, None)
     #   player2 = RandomPlayer(None, None)
-    #   board = initSimpleBoard(player1, player2)    
+    #   game = initSimpleGame(player1, player2)    
 
-    #   if board.playGame().princ.getPoints() != 10:
+    #   if game.playGame().princ.getPoints() != 10:
     #     totalsNot += 1
 
     # print(totalsNot)

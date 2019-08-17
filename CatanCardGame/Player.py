@@ -14,7 +14,7 @@ from Slot import Slot, TownSlot, RoadSlot, ExpansionSlot, ResourceSlot
 from Piece import Piece, Town, Road, Expansion, Resource
 
 
-##This is a board for python. 
+##This is a game for python. 
 
 ####################################################################################
 #################################### Game Parts ###################################
@@ -28,11 +28,11 @@ class Player:
 
   """
   name = 0
-  def __init__(self, board, princ):
+  def __init__(self, game, princ):
     self.name = Player.name
     Player.name += 1
 
-    self.board = board
+    self.game = game
 
     self.princ = princ
 
@@ -175,13 +175,13 @@ class Player:
 
 
 class RandomPlayer(Player):
-  def __init__(self, board, princ):
-    super().__init__(board, princ)
+  def __init__(self, game, princ):
+    super().__init__(game, princ)
     
   #Just returns one of the valid actions
   def getAction(self, phase, actionPerformed=None):
 
-    validActions = self.board.getValidActions(self.princ)
+    validActions = self.game.getValidActions(self.princ)
 
     if len(validActions) == 0:
       return None

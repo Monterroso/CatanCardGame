@@ -16,22 +16,22 @@ from Piece import Piece, Town, Road, Expansion, Resource
 
 
 class Principality:
-  #Takes in the player, board, the list of starting resources clockwise
+  #Takes in the player, game, the list of starting resources clockwise
   #Actions is a dictionary of actions, keys as the action, and it's phases
-  def __init__(self, board, player, checkPlayer, resourceList):
-    """This is a player's own personal board
+  def __init__(self, game, player, checkPlayer, resourceList):
+    """This is a player's own personal game
 
     The principality starts out by having the coordinates initiated and the 
     empty slots placed in the correct places. 
 
     Args:
-      board (Board) board that contains the game
+      game (Game) game that contains the game
       player (Player) Player agent that makes decisions
       checkPlayer (Player) agent that is able to determine what actions are possible
       resourceList (list) list of resources
     """
 
-    self.board = board
+    self.game = game
 
     self.coordinates = [[None for _ in range(Tags.NUMCOLUMNS)] for _ in range(Tags.NUMLAYERS)]
 
@@ -69,10 +69,10 @@ class Principality:
     self.checkPlayer = checkPlayer
 
     player.princ = self
-    player.board = board
+    player.game = game
 
     checkPlayer.princ = self
-    checkPlayer.board = board
+    checkPlayer.game = game
 
     #Create initial road
     self.coordinates[Tags.TOWNLEVEL][Tags.CENTERPOST].setItem(Road(self))
